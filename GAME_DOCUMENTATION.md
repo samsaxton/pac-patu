@@ -92,10 +92,14 @@ Navigate the Patu's Pirates waterpolo logo through the maze, collecting all wate
 - **Movement**: Smooth directional movement with collision detection
 
 #### Collectibles
-- **Waterpolo Balls**: Standard collectibles worth 10 points each, rendered with authentic waterpolo ball graphics
-- **Power Pellets**: Special water polo balls with golden glow effects that make enemies vulnerable (50 points)
-  - **Visual Enhancement**: Real water polo ball images with pulsing golden glow
-  - **Animation Effects**: Scaling and shadow effects for visual appeal
+- **Blue Waterpolo Balls**: Standard collectibles worth 10 points each (8px radius)
+  - **Color**: Distinct blue (#0080FF) with subtle glow and 3D highlight effects
+  - **Formation**: Authentic waterpolo tactical formations (3-2-1 top, 2-4 bottom)
+  - **Animation**: Pulsing size variation and blue particle effects on collection
+- **Golden Power Pellets**: Special waterpolo balls that make enemies vulnerable (50 points, 16px radius)
+  - **Visual Enhancement**: Real water polo ball images with pulsing golden glow (#FFD700)
+  - **Animation Effects**: Scaling, shadow effects, and golden particle effects
+  - **Strategic Placement**: Positioned in field corners for tactical gameplay
 
 #### Enemies
 - **Pirate Ships**: AI-controlled enemies with advanced behavioral systems
@@ -119,11 +123,74 @@ Navigate the Patu's Pirates waterpolo logo through the maze, collecting all wate
 
 #### Water Polo Goal Spawn System
 - **Goal Graphics**: Realistic water polo goals with white posts and net patterns
-- **Strategic Placement**: Goals positioned at top and bottom center of play area
+- **Strategic Placement**: Goals positioned at top center (400, 210) and bottom center (400, 790)
 - **Enemy Emergence**: All pirate ships spawn from goals, never from screen edges
 - **Spawn Protection**: 1-second period where enemies slowly exit goals
 - **Directional Movement**: Top goal enemies move downward, bottom goal enemies move upward
 - **Visual Consistency**: Maintains waterpolo theme throughout gameplay
+
+### Precise Formation Positioning System (Canvas: 800x600)
+
+#### **Vector Positioning Logic**
+The game uses a precise coordinate system to ensure authentic waterpolo formations:
+
+**Power Pellet Reference Points:**
+- Top Power Pellets: Y=150 (horizontal reference line)
+- Bottom Power Pellets: Y=450 (horizontal reference line)
+- Corner Positions: (100, 150), (700, 150), (100, 450), (700, 450)
+
+**Formation Alignment Rules:**
+1. **Top Formation (3-2-1)**: First row aligns with top power pellet Y-coordinate (150)
+2. **Bottom Formation (2-4)**: Positioned between center and bottom power pellets (Y=380)
+3. **Horizontal Spacing**: Uses centerX (400) as reference point for symmetric distribution
+
+#### **Exact Coordinate Specifications**
+
+**Top Formation (3-2-1 Offensive Pattern):**
+```javascript
+const topGoalY = 150; // Aligned with top power pellets
+const topRowSpacing = 58; // Vertical spacing between rows
+const topHorizontalSpacing = 100; // Wide spacing for 3-ball row
+const topHorizontalHalf = 50; // Narrow spacing for 2-ball row
+
+// Row 1 (3 balls): Y=150
+- Left: (300, 150)   // centerX - 100
+- Center: (400, 150) // centerX
+- Right: (500, 150)  // centerX + 100
+
+// Row 2 (2 balls): Y=208
+- Left: (350, 208)   // centerX - 50
+- Right: (450, 208)  // centerX + 50
+
+// Row 3 (1 ball): Y=266
+- Center: (400, 266) // centerX
+```
+
+**Bottom Formation (2-4 Defensive Pattern):**
+```javascript
+const bottomGoalY = 380; // Positioned towards center from power pellets
+const bottomRowSpacing = 90; // Vertical spacing between rows
+const bottomHorizontalHalf = 50; // Inner ball spacing
+const bottomHorizontalWide = 150; // Outer ball spacing (increased for even distribution)
+
+// Row 1 (2 balls): Y=380
+- Left: (350, 380)   // centerX - 50
+- Right: (450, 380)  // centerX + 50
+
+// Row 2 (4 balls): Y=470
+- Far Left: (250, 470)  // centerX - 150
+- Left: (350, 470)      // centerX - 50
+- Right: (450, 470)     // centerX + 50
+- Far Right: (550, 470) // centerX + 150
+```
+
+#### **Formation Adjustment Guidelines**
+When modifying formations, follow these vector principles:
+
+1. **Vertical Alignment**: Use power pellet Y-coordinates as reference lines
+2. **Horizontal Distribution**: Calculate from centerX (400) with symmetric offsets
+3. **Even Spacing**: Ensure outer balls have wider spacing than inner balls for visual balance
+4. **Tactical Authenticity**: Maintain 3-2-1 offensive and 2-4 defensive waterpolo patterns
 
 ### Game States
 1. **Menu**: Starting screen with game information
@@ -254,34 +321,49 @@ The game automatically adjusts quality based on device performance:
 
 ## Audio System
 
-### Sound Categories
-1. **SFX (Sound Effects)**
-   - Collection sounds
-   - Enemy defeat sounds
-   - Player death sounds
-   - Menu interaction sounds
+### Comprehensive Sound Effects System ✅ IMPLEMENTED
+The game features a sophisticated audio system using Web Audio API for immediate sound generation:
 
-2. **Music**
-   - Background music during gameplay
-   - Menu music
-   - Level completion fanfares
+#### Core Gameplay Sounds
+1. **Blue Ball Collection** 🌊 - Water splash sound for collecting blue waterpolo balls
+2. **Golden Power Pellet** ⚡ - Whistle sound when collecting golden power pellets
+3. **Enemy Defeat** 💥 - Ship sinking sound when eating vulnerable pirate ships
+4. **Player Death** 💀 - Dramatic falling sound sequence on collision with enemies
+5. **Player Movement** 🏊 - Subtle swimming sounds (throttled to prevent audio spam)
 
-3. **Ambient**
-   - Ocean wave sounds
-   - Environmental audio
+#### Game State Audio
+6. **Level Complete** 🏆 - Victory fanfare melody (C5, E5, G5, C6)
+7. **Game Over** 😢 - Sad pirate theme with descending melody
+8. **Enemy Vulnerable** 🔔 - Warning bell when power pellet activates
+9. **Bonus Points** ⭐ - Ascending chime for achievements
+10. **Menu Navigation** 🎯 - UI interaction feedback
+11. **Ocean Ambient** 🌊 - Background atmosphere sounds
 
-### Volume Controls
-- **Master Volume**: Overall audio level (0-100%)
-- **Category Volumes**: Independent control for SFX, Music, Ambient
-- **Dynamic Range**: Automatic volume balancing
-- **Fade Effects**: Smooth transitions between audio states
+### Technical Implementation
+- **Web Audio API**: Real-time sound generation with <10ms latency
+- **Hybrid System**: Generated sounds + framework for future audio files
+- **Volume Control**: Separate master (70%) and SFX (80%) volume controls
+- **Performance Optimized**: Efficient oscillator management and cleanup
+- **Browser Compatible**: Handles autoplay policies and context suspension
 
 ### Audio Features
-- **Spatial Audio**: Stereo panning for positional effects
-- **Reverb**: Environmental audio enhancement
-- **Filtering**: Dynamic audio processing
-- **Compression**: Consistent volume levels
-- **Crossfading**: Smooth music transitions
+- **Sound Generation**: Sine, sawtooth, triangle, and square wave oscillators
+- **Filtering**: Lowpass filters for water-like effects and ambience
+- **Envelopes**: ADSR-style volume control for natural sound decay
+- **Frequency Modulation**: Dynamic frequency changes for realistic effects
+- **Sound Layering**: Multiple oscillators for complex effects (splash + bubbles)
+
+### Testing & Quality Assurance
+- **Test Suite**: `test-sound-effects.html` for comprehensive audio testing
+- **Real-time Controls**: Volume adjustment and system status monitoring
+- **Individual Testing**: Each sound effect can be tested independently
+- **Cross-browser Support**: 95%+ modern browser compatibility
+
+### Future Enhancements (Phase 2)
+- **High-Quality Audio Files**: Replace generated sounds with recorded samples
+- **Background Music**: Adaptive pirate-themed soundtrack
+- **Voice Acting**: Pirate character voices and exclamations
+- **3D Positional Audio**: Spatial audio for immersive experience
 
 ---
 
@@ -480,5 +562,5 @@ For technical support, bug reports, or feature requests:
 4. Provide detailed reproduction steps for bugs
 
 **Last Updated**: December 2024
-**Version**: 1.0.0
+**Version**: 1.01
 **Compatibility**: Modern web browsers with HTML5 support

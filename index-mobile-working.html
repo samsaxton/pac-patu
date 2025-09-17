@@ -62,6 +62,30 @@
             touch-action: none;
         }
         
+        /* Responsive canvas sizing for mobile */
+        @media (max-width: 768px) {
+            canvas {
+                width: 100% !important;
+                height: auto !important;
+                max-width: 100vw;
+            }
+            
+            .game-container {
+                padding: 5px;
+                margin: 5px;
+            }
+            
+            h1 {
+                font-size: clamp(1.2em, 5vw, 1.8em);
+                margin-bottom: 10px;
+            }
+            
+            .game-info {
+                font-size: clamp(12px, 4vw, 16px);
+                margin-bottom: 10px;
+            }
+        }
+        
         .controls {
             text-align: center;
             margin-top: 15px;
@@ -103,6 +127,106 @@
         .hidden {
             display: none !important;
         }
+        
+        /* Mobile Controls */
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            justify-content: space-between;
+            width: 90%;
+            max-width: 400px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+        
+        .mobile-controls.show {
+            display: flex;
+        }
+        
+        .touch-joystick {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: relative;
+            pointer-events: all;
+            touch-action: none;
+            user-select: none;
+        }
+        
+        .joystick-knob {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mobile-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .mobile-button {
+            width: 60px;
+            height: 60px;
+            background: rgba(74, 144, 226, 0.8);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            pointer-events: all;
+            touch-action: manipulation;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+        
+        .mobile-button:active {
+            background: rgba(53, 122, 189, 0.9);
+            transform: scale(0.95);
+        }
+        
+        @media (max-width: 768px) {
+            .desktop-controls {
+                display: none;
+            }
+            
+            .mobile-controls-info {
+                display: block;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .touch-joystick {
+                width: 100px;
+                height: 100px;
+            }
+            
+            .joystick-knob {
+                width: 35px;
+                height: 35px;
+            }
+            
+            .mobile-button {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
     </style>
 </head><body>
    
@@ -137,11 +261,37 @@
         
         <div class="controls">
             <span class="desktop-controls">Use arrow keys or WASD to move • P to pause • ESC for menu</span>
+            <span class="mobile-controls-info" style="display: none;">Use virtual joystick to move • Tap pause button</span>
+        </div>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div class="mobile-controls" id="mobileControls">
+        <div class="touch-joystick" id="touchJoystick">
+            <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+        
+        <div class="mobile-buttons">
+            <div class="mobile-button" id="pauseButton">⏸️</div>
+            <div class="mobile-button" id="menuButton">📱</div>
         </div>
     </div>
 
     <script>
-        console.log('🎮 Starting Pac-Patu with proper image loading...');
+        console.log('🎮 Starting Pac-Patu Mobile with proper image loading...');
+        
+        // Mobile Detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         ('ontouchstart' in window) || 
+                         (navigator.maxTouchPoints > 0);
+        
+        console.log('📱 Mobile detected:', isMobile);
+        
+        if (isMobile) {
+            document.getElementById('mobileControls').classList.add('show');
+            document.querySelector('.desktop-controls').style.display = 'none';
+            document.querySelector('.mobile-controls-info').style.display = 'block';
+        }
         
         class PatuPiratesGame {
             constructor() {
@@ -161,6 +311,15 @@
                 
                 // Input
                 this.keys = {};
+                
+                // Mobile touch input
+                this.touchJoystick = {
+                    active: false,
+                    deltaX: 0,
+                    deltaY: 0,
+                    maxDistance: 40,
+                    sensitivity: 0.025
+                };
                 
                 // Player (Patu logo)
                 this.player = {
@@ -213,6 +372,8 @@
                 
                 // Setup input, audio, and load sprites
                 this.setupInput();
+                this.setupMobileControls();
+                this.setupCanvas();
                 this.initAudio();
                 this.loadSprites();
                 
@@ -228,13 +389,16 @@
                     
                     // Handle audio context suspension (browser autoplay policy)
                     if (this.audioContext.state === 'suspended') {
-                        document.addEventListener('click', () => {
+                        const resumeAudio = () => {
                             if (this.audioContext.state === 'suspended') {
                                 this.audioContext.resume().then(() => {
                                     console.log('🔊 Audio context resumed');
                                 });
                             }
-                        }, { once: true });
+                        };
+                        
+                        document.addEventListener('click', resumeAudio, { once: true });
+                        document.addEventListener('touchstart', resumeAudio, { once: true });
                     }
                 } catch (error) {
                     console.warn('⚠️ Audio not available:', error);
@@ -271,11 +435,13 @@
                 // Water splash sound
                 this.playSound(800, 0.1, 'sine', 0.2);
                 setTimeout(() => this.playSound(400, 0.1, 'sine', 0.15), 50);
+                this.hapticFeedback('collect');
             }
             
             playPowerPelletSound() {
                 // Whistle sound
                 this.playSound(1200, 0.3, 'sine', 0.3);
+                this.hapticFeedback('powerPellet');
             }
             
             playEnemyDefeatSound() {
@@ -290,6 +456,7 @@
                         this.playSound(800 - i * 150, 0.2, 'square', 0.2);
                     }, i * 100);
                 }
+                this.hapticFeedback('death');
             }
 
             loadSprites() {
@@ -401,6 +568,147 @@
                 document.addEventListener('keyup', (e) => {
                     this.keys[e.code] = false;
                 });
+            }
+            
+            setupMobileControls() {
+                if (!isMobile) return;
+                
+                console.log('🕹️ Setting up mobile controls...');
+                
+                const joystick = document.getElementById('touchJoystick');
+                const knob = document.getElementById('joystickKnob');
+                const pauseButton = document.getElementById('pauseButton');
+                const menuButton = document.getElementById('menuButton');
+                
+                // Touch joystick setup
+                this.setupTouchJoystick(joystick, knob);
+                
+                // Mobile buttons setup
+                pauseButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.hapticFeedback('light');
+                    this.togglePause();
+                });
+                
+                menuButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.hapticFeedback('light');
+                    if (this.gameState === 'playing' || this.gameState === 'paused') {
+                        this.gameState = 'menu';
+                        this.showMenu();
+                    }
+                });
+                
+                console.log('✅ Mobile controls setup complete');
+            }
+            
+            setupTouchJoystick(joystick, knob) {
+                let startX, startY;
+                
+                joystick.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.touchJoystick.active = true;
+                    this.hapticFeedback('light');
+                    
+                    const rect = joystick.getBoundingClientRect();
+                    startX = rect.left + rect.width / 2;
+                    startY = rect.top + rect.height / 2;
+                    
+                    knob.style.transition = 'none';
+                });
+                
+                joystick.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (!this.touchJoystick.active) return;
+                    
+                    const touch = e.touches[0];
+                    const deltaX = touch.clientX - startX;
+                    const deltaY = touch.clientY - startY;
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    
+                    if (distance <= this.touchJoystick.maxDistance) {
+                        this.touchJoystick.deltaX = deltaX;
+                        this.touchJoystick.deltaY = deltaY;
+                        knob.style.transform = `translate(${deltaX - 20}px, ${deltaY - 20}px)`;
+                    } else {
+                        const angle = Math.atan2(deltaY, deltaX);
+                        const x = Math.cos(angle) * this.touchJoystick.maxDistance;
+                        const y = Math.sin(angle) * this.touchJoystick.maxDistance;
+                        
+                        this.touchJoystick.deltaX = x;
+                        this.touchJoystick.deltaY = y;
+                        knob.style.transform = `translate(${x - 20}px, ${y - 20}px)`;
+                    }
+                });
+                
+                joystick.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.touchJoystick.active = false;
+                    this.touchJoystick.deltaX = 0;
+                    this.touchJoystick.deltaY = 0;
+                    
+                    knob.style.transition = 'all 0.2s ease';
+                    knob.style.transform = 'translate(-50%, -50%)';
+                });
+            }
+            
+            togglePause() {
+                if (this.gameState === 'playing') {
+                    this.gameState = 'paused';
+                } else if (this.gameState === 'paused') {
+                    this.gameState = 'playing';
+                }
+            }
+            
+            setupCanvas() {
+                if (!isMobile) return;
+                
+                // Responsive canvas sizing for mobile
+                const maxWidth = Math.min(window.innerWidth - 20, 800);
+                const maxHeight = Math.min(window.innerHeight - 250, 600);
+                
+                // Maintain aspect ratio
+                const aspectRatio = 800 / 600;
+                let displayWidth = maxWidth;
+                let displayHeight = maxWidth / aspectRatio;
+                
+                if (displayHeight > maxHeight) {
+                    displayHeight = maxHeight;
+                    displayWidth = maxHeight * aspectRatio;
+                }
+                
+                this.canvas.style.width = displayWidth + 'px';
+                this.canvas.style.height = displayHeight + 'px';
+                
+                console.log(`📐 Canvas sized for mobile: ${displayWidth}x${displayHeight}`);
+                
+                // Handle orientation changes
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => this.setupCanvas(), 200);
+                });
+                
+                window.addEventListener('resize', () => {
+                    setTimeout(() => this.setupCanvas(), 100);
+                });
+            }
+            
+            hapticFeedback(type = 'light') {
+                if (!navigator.vibrate) return;
+                
+                const patterns = {
+                    light: 50,
+                    medium: 100,
+                    heavy: 200,
+                    collect: [50, 30, 50],
+                    powerPellet: [100, 50, 100],
+                    death: [200, 100, 200]
+                };
+                
+                try {
+                    navigator.vibrate(patterns[type] || patterns.light);
+                } catch (error) {
+                    console.warn('Haptic feedback failed:', error);
+                }
             }
             
             start() {
@@ -605,11 +913,19 @@
             
             updatePlayer(dt) {
                 let dx = 0, dy = 0;
+                const sensitivity = this.touchJoystick.sensitivity;
                 
+                // Keyboard input
                 if (this.keys['ArrowLeft'] || this.keys['KeyA']) dx = -1;
                 if (this.keys['ArrowRight'] || this.keys['KeyD']) dx = 1;
                 if (this.keys['ArrowUp'] || this.keys['KeyW']) dy = -1;
                 if (this.keys['ArrowDown'] || this.keys['KeyS']) dy = 1;
+                
+                // Touch input
+                if (this.touchJoystick && this.touchJoystick.active) {
+                    dx += this.touchJoystick.deltaX * sensitivity;
+                    dy += this.touchJoystick.deltaY * sensitivity;
+                }
                 
                 // Normalize diagonal movement
                 const magnitude = Math.sqrt(dx * dx + dy * dy);
