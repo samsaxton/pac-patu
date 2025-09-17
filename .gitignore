@@ -1,0 +1,30 @@
+# Development and test files
+test-*.html
+debug-*.html
+*-test.html
+*test*.html
+verify-*.js
+*-test.js
+*test*.js
+comprehensive-test-suite.html
+run-*.html
+
+# Task and development documentation
+task-*.md
+*-completion-summary.md
+*-integration-fixes.md
+animation-system-guide.md
+
+# Kiro specific files
+.kiro/
+.vscode/
+
+# Development artifacts
+*-backup.js
+*-minimal.js
+find-syntax-error.html
+syntax-check*.html
+
+# Temporary files
+*.tmp
+*.temp

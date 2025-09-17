@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patu's Pirates - Waterpolo Adventure</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .game-container {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        canvas {
+            border: 3px solid #4a90e2;
+            border-radius: 10px;
+            background: #000;
+            display: block;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-top: 15px;
+            color: #b0b0b0;
+        }
+        
+        .menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(30, 60, 114, 0.95);
+            padding: 40px;
+            border-radius: 15px;
+            border: 2px solid #4a90e2;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #357abd 0%, #2968a3 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .game-status {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🏴‍☠️ Patu's Pirates - Waterpolo Adventure</h1>
+        
+        <div class="game-info">
+            <div>Score: <span id="score">0</span></div>
+            <div>Lives: <span id="lives">3</span></div>
+            <div>Level: <span id="level">1</span></div>
+        </div>
+        
+        <div style="position: relative;">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            <div id="menu" class="menu">
+                <h2>🏴‍☠️ Patu's Pirates</h2>
+                <p>Collect waterpolo balls while avoiding pirate ships!</p>
+                <p>Use arrow keys or WASD to move</p>
+                <button onclick="startGame()">Start Game</button>
+            </div>
+            
+            <div id="gameOverMenu" class="menu hidden">
+                <h2>Game Over</h2>
+                <p>Final Score: <span id="finalScore">0</span></p>
+                <button onclick="startGame()">Play Again</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            Use arrow keys or WASD to move • P to pause • ESC for menu
+        </div>
+    </div>
+
+    <script>
+        // Complete Patu's Pirates Game
+        class PatuPiratesGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Game state
+                this.gameState = 'loading'; // loading, menu, playing, paused, gameOver
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                
+                // Sprites
+                this.sprites = {};
+                this.spritesLoaded = false;
+                
+                // Player
+                this.player = {
+                    x: 400,
+                    y: 300,
+                    size: 20,
+                    spriteSize: 50, // Visual size when using sprite (made larger)
+                    speed: 200,
+                    color: '#FFD700',
+                    sprite: null,
+                    mouthOpen: false,
+                    mouthTimer: 0,
+                    eating: false
+                };
+                
+                // Enemies (pirate ships)
+                this.enemies = [];
+                this.enemyCount = 3;
+                
+                // Collectibles (waterpolo balls)
+                this.collectibles = [];
+                this.collectibleCount = 25;
+                
+                // Power pellets
+                this.powerPellets = [];
+                this.powerPelletActive = false;
+                this.powerPelletTimer = 0;
+                
+                // Input
+                this.keys = {};
+                
+                // Timing
+                this.lastTime = 0;
+                
+                // Particles for effects
+                this.particles = [];
+                
+                // Water polo goal spawn points
+                this.spawnGoals = [
+                    { x: this.canvas.width / 2, y: 60, name: 'top' },
+                    { x: this.canvas.width / 2, y: this.canvas.height - 60, name: 'bottom' }
+                ];
+                
+                this.setupInput();
+                this.loadSprites().then(() => {
+                    this.initLevel();
+                    this.gameState = 'menu';
+                    console.log('✅ Patu\'s Pirates Game initialized successfully!');
+                }).catch(error => {
+                    console.error('Failed to load sprites:', error);
+                    this.initLevel();
+                    this.gameState = 'menu';
+                    console.log('✅ Patu\'s Pirates Game initialized with fallback graphics!');
+                });
+            }
+            
+            async loadSprites() {
+                const spritePromises = [];
+                
+                // Load Patu pirate logo
+                const patuLogo = new Image();
+                patuLogo.src = 'Images/Patu Pirate logo.png';
+                spritePromises.push(new Promise((resolve, reject) => {
+                    patuLogo.onload = () => {
+                        this.sprites.patuLogo = patuLogo;
+                        resolve();
+                    };
+                    patuLogo.onerror = () => {
+                        console.warn('Failed to load Patu logo, using fallback');
+                        resolve(); // Don't reject, just use fallback
+                    };
+                }));
+                
+                // Create pirate ship sprite programmatically
+                const pirateShip = this.createPirateShipSprite();
+                this.sprites.pirateShip = pirateShip;
+                
+                // Create waterpolo ball sprite
+                const waterpoloBall = this.createWaterpoloBallSprite();
+                this.sprites.waterpoloBall = waterpoloBall;
+                
+                // Create power pellet sprite
+                const powerPellet = this.createPowerPelletSprite();
+                this.sprites.powerPellet = powerPellet;
+                
+                await Promise.all(spritePromises);
+                this.spritesLoaded = true;
+                console.log('Sprites loaded successfully');
+            }
+            
+            createPirateShipSprite() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 36;
+                canvas.height = 36;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw pirate ship
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(8, 20, 20, 12);
+                
+                // Mast
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(17, 8, 2, 20);
+                
+                // Sail
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(10, 8, 6, 8);
+                
+                // Pirate flag
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(19, 8, 8, 6);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText('☠', 21, 13);
+                
+                const image = new Image();
+                image.src = canvas.toDataURL();
+                return image;
+            }
+            
+            createWaterpoloBallSprite() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 16;
+                canvas.height = 16;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw waterpolo ball
+                ctx.fillStyle = '#00BFFF';
+                ctx.beginPath();
+                ctx.arc(8, 8, 7, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Add pattern
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(8, 8, 5, 0, 2 * Math.PI);
+                ctx.stroke();
+                
+                const image = new Image();
+                image.src = canvas.toDataURL();
+                return image;
+            }
+            
+            createPowerPelletSprite() {
+                // Load the actual water polo ball image
+                const image = new Image();
+                image.src = 'Images/waterpolo ball.png';
+                return image;
+            }
+            
+            setupInput() {
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    
+                    if (e.code === 'KeyP' && this.gameState === 'playing') {
+                        this.gameState = 'paused';
+                    } else if (e.code === 'KeyP' && this.gameState === 'paused') {
+                        this.gameState = 'playing';
+                    } else if (e.code === 'Escape') {
+                        this.gameState = 'menu';
+                        this.showMenu();
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+            }
+            
+            initLevel() {
+                // Create enemies (pirate ships) spawning from water polo goals
+                this.enemies = [];
+                const totalEnemies = this.enemyCount + Math.floor(this.level / 3);
+                
+                for (let i = 0; i < totalEnemies; i++) {
+                    // Alternate between top and bottom goals, with some spacing
+                    const goalIndex = i % 2;
+                    const goal = this.spawnGoals[goalIndex];
+                    const offsetX = (Math.random() - 0.5) * 40; // Reduced offset to stay closer to goals
+                    
+                    this.enemies.push({
+                        x: goal.x + offsetX,
+                        y: goal.y,
+                        size: 18,
+                        speed: 80 + this.level * 15,
+                        color: '#FF4444',
+                        vulnerable: false,
+                        direction: { x: Math.random() - 0.5, y: Math.random() - 0.5 },
+                        type: 'pirate',
+                        spawnGoal: goalIndex, // Remember which goal this enemy came from
+                        justSpawned: true, // Flag to indicate recent spawn
+                        spawnTimer: 1.0 // 1 second spawn protection
+                    });
+                }
+                
+                // Create collectibles (waterpolo balls)
+                this.collectibles = [];
+                const rows = 5;
+                const cols = Math.ceil(this.collectibleCount / rows);
+                for (let i = 0; i < this.collectibleCount; i++) {
+                    const row = Math.floor(i / cols);
+                    const col = i % cols;
+                    this.collectibles.push({
+                        x: 80 + col * (this.canvas.width - 160) / (cols - 1),
+                        y: 80 + row * (this.canvas.height - 160) / (rows - 1),
+                        size: 8,
+                        color: '#00BFFF',
+                        collected: false,
+                        pulse: Math.random() * Math.PI * 2
+                    });
+                }
+                
+                // Create power pellets
+                this.powerPellets = [];
+                const corners = [
+                    {x: 50, y: 50},
+                    {x: this.canvas.width - 50, y: 50},
+                    {x: 50, y: this.canvas.height - 50},
+                    {x: this.canvas.width - 50, y: this.canvas.height - 50}
+                ];
+                
+                corners.forEach(corner => {
+                    this.powerPellets.push({
+                        x: corner.x,
+                        y: corner.y,
+                        size: 15,
+                        color: '#FF00FF',
+                        collected: false,
+                        pulse: 0
+                    });
+                });
+            }
+            
+            start() {
+                this.gameState = 'playing';
+                this.hideMenu();
+                this.gameLoop();
+            }
+            
+            gameLoop() {
+                const currentTime = performance.now();
+                const deltaTime = currentTime - this.lastTime;
+                this.lastTime = currentTime;
+                
+                if (this.gameState === 'playing') {
+                    this.update(deltaTime);
+                }
+                
+                this.render();
+                
+                if (this.gameState !== 'menu' && this.gameState !== 'gameOver') {
+                    requestAnimationFrame(() => this.gameLoop());
+                }
+            }
+            
+            update(deltaTime) {
+                const dt = deltaTime / 1000;
+                
+                // Update player
+                this.updatePlayer(dt);
+                
+                // Update enemies
+                this.updateEnemies(dt);
+                
+                // Update particles
+                this.updateParticles(dt);
+                
+                // Update collectible animations
+                this.collectibles.forEach(c => c.pulse += dt * 3);
+                this.powerPellets.forEach(p => p.pulse += dt * 2);
+                
+                // Update player mouth animation
+                if (this.player.eating) {
+                    this.player.mouthTimer += dt;
+                    this.player.mouthOpen = Math.sin(this.player.mouthTimer * 10) > 0;
+                    
+                    if (this.player.mouthTimer > 0.3) { // Stop eating animation after 0.3 seconds
+                        this.player.eating = false;
+                        this.player.mouthOpen = false;
+                        this.player.mouthTimer = 0;
+                    }
+                } else {
+                    this.player.mouthOpen = false;
+                }
+                
+                // Update power pellet timer
+                if (this.powerPelletActive) {
+                    this.powerPelletTimer -= deltaTime;
+                    if (this.powerPelletTimer <= 0) {
+                        this.powerPelletActive = false;
+                        this.enemies.forEach(enemy => {
+                            enemy.vulnerable = false;
+                            enemy.color = '#FF4444';
+                        });
+                    }
+                }
+                
+                // Check collisions
+                this.checkCollisions();
+                
+                // Check win condition
+                const remainingCollectibles = this.collectibles.filter(c => !c.collected).length;
+                const remainingPowerPellets = this.powerPellets.filter(p => !p.collected).length;
+                
+                if (remainingCollectibles === 0 && remainingPowerPellets === 0) {
+                    this.nextLevel();
+                }
+                
+                // Update UI
+                this.updateUI();
+            }
+            
+            updatePlayer(dt) {
+                let dx = 0, dy = 0;
+                
+                if (this.keys['ArrowLeft'] || this.keys['KeyA']) dx = -1;
+                if (this.keys['ArrowRight'] || this.keys['KeyD']) dx = 1;
+                if (this.keys['ArrowUp'] || this.keys['KeyW']) dy = -1;
+                if (this.keys['ArrowDown'] || this.keys['KeyS']) dy = 1;
+                
+                // Normalize diagonal movement
+                if (dx !== 0 && dy !== 0) {
+                    dx *= 0.707;
+                    dy *= 0.707;
+                }
+                
+                this.player.x += dx * this.player.speed * dt;
+                this.player.y += dy * this.player.speed * dt;
+                
+                // Keep player in bounds
+                this.player.x = Math.max(this.player.size, Math.min(this.canvas.width - this.player.size, this.player.x));
+                this.player.y = Math.max(this.player.size, Math.min(this.canvas.height - this.player.size, this.player.y));
+            }
+            
+            updateEnemies(dt) {
+                this.enemies.forEach((enemy, index) => {
+                    // Handle spawn protection
+                    if (enemy.justSpawned) {
+                        enemy.spawnTimer -= dt;
+                        if (enemy.spawnTimer <= 0) {
+                            enemy.justSpawned = false;
+                        } else {
+                            // During spawn protection, move away from goal toward the play area
+                            const goal = this.spawnGoals[enemy.spawnGoal];
+                            
+                            // Determine exit direction based on which goal
+                            let exitDirectionX = 0;
+                            let exitDirectionY = 0;
+                            
+                            if (enemy.spawnGoal === 0) {
+                                // Top goal - move downward and slightly toward sides
+                                exitDirectionY = 1;
+                                exitDirectionX = (enemy.x > this.canvas.width / 2) ? 0.3 : -0.3;
+                            } else {
+                                // Bottom goal - move upward and slightly toward sides  
+                                exitDirectionY = -1;
+                                exitDirectionX = (enemy.x > this.canvas.width / 2) ? 0.3 : -0.3;
+                            }
+                            
+                            // Move in the exit direction
+                            enemy.x += exitDirectionX * 40 * dt;
+                            enemy.y += exitDirectionY * 40 * dt;
+                            
+                            return; // Skip normal AI during spawn protection
+                        }
+                    }
+                    
+                    // Calculate direction towards/away from player
+                    const dx = this.player.x - enemy.x;
+                    const dy = this.player.y - enemy.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    let targetDirectionX = 0;
+                    let targetDirectionY = 0;
+                    
+                    if (distance > 0) {
+                        if (enemy.vulnerable) {
+                            // Vulnerable enemies run away from player
+                            const randomFactor = 0.2;
+                            targetDirectionX = -(dx / distance) + (Math.random() - 0.5) * randomFactor;
+                            targetDirectionY = -(dy / distance) + (Math.random() - 0.5) * randomFactor;
+                        } else {
+                            // Normal enemies chase player with enhanced randomness
+                            const baseRandomFactor = 0.3;
+                            
+                            // Add time-based wandering behavior
+                            if (!enemy.wanderTimer) enemy.wanderTimer = 0;
+                            enemy.wanderTimer += dt;
+                            
+                            // Occasional direction changes for more organic movement
+                            const wanderStrength = 0.4;
+                            const wanderX = Math.sin(enemy.wanderTimer * 2 + index) * wanderStrength;
+                            const wanderY = Math.cos(enemy.wanderTimer * 1.5 + index) * wanderStrength;
+                            
+                            // Random direction changes for more organic movement
+                            const directionChangeChance = 0.015; // 1.5% chance per frame
+                            if (Math.random() < directionChangeChance) {
+                                if (!enemy.changingDirection) {
+                                    enemy.changingDirection = true;
+                                    enemy.directionChangeTimer = 0.5 + Math.random() * 1.0; // 0.5-1.5 seconds
+                                    // Generate a strong random direction bias
+                                    const randomAngle = Math.random() * Math.PI * 2;
+                                    enemy.randomDirectionBias = {
+                                        x: Math.cos(randomAngle) * 1.2, // Strong directional bias
+                                        y: Math.sin(randomAngle) * 1.2
+                                    };
+                                }
+                            }
+                            
+                            // Handle direction change behavior
+                            let directionBiasX = 0;
+                            let directionBiasY = 0;
+                            if (enemy.changingDirection) {
+                                enemy.directionChangeTimer -= dt;
+                                if (enemy.directionChangeTimer <= 0) {
+                                    enemy.changingDirection = false;
+                                } else {
+                                    // Apply strong directional bias while still somewhat chasing
+                                    directionBiasX = enemy.randomDirectionBias.x;
+                                    directionBiasY = enemy.randomDirectionBias.y;
+                                }
+                            }
+                            
+                            // Enhanced random factors based on distance
+                            const distanceRandomFactor = Math.min(1.0, distance / 200); // More random when far away
+                            const finalRandomFactor = baseRandomFactor * (0.5 + distanceRandomFactor);
+                            
+                            // Combine all movement factors
+                            targetDirectionX = (dx / distance) * 0.7 + // Reduce player-seeking when changing direction
+                                             (Math.random() - 0.5) * finalRandomFactor + 
+                                             wanderX * 0.3 +
+                                             directionBiasX * 0.6; // Strong directional bias
+                            targetDirectionY = (dy / distance) * 0.7 + 
+                                             (Math.random() - 0.5) * finalRandomFactor + 
+                                             wanderY * 0.3 +
+                                             directionBiasY * 0.6;
+                        }
+                    }
+                    
+                    // Add separation force to avoid bunching
+                    let separationX = 0;
+                    let separationY = 0;
+                    const separationRadius = 50; // Minimum distance to maintain from other enemies
+                    const separationStrength = 0.4; // How strong the separation force is
+                    
+                    this.enemies.forEach((otherEnemy, otherIndex) => {
+                        if (index !== otherIndex) {
+                            const otherDx = enemy.x - otherEnemy.x;
+                            const otherDy = enemy.y - otherEnemy.y;
+                            const otherDistance = Math.sqrt(otherDx * otherDx + otherDy * otherDy);
+                            
+                            if (otherDistance < separationRadius && otherDistance > 0) {
+                                // Add force pushing away from other enemy
+                                const separationForce = (separationRadius - otherDistance) / separationRadius;
+                                separationX += (otherDx / otherDistance) * separationForce * separationStrength;
+                                separationY += (otherDy / otherDistance) * separationForce * separationStrength;
+                            }
+                        }
+                    });
+                    
+                    // Combine player-seeking/fleeing direction with separation
+                    enemy.direction.x = targetDirectionX + separationX;
+                    enemy.direction.y = targetDirectionY + separationY;
+                    
+                    // Normalize direction
+                    const dirLength = Math.sqrt(enemy.direction.x * enemy.direction.x + enemy.direction.y * enemy.direction.y);
+                    if (dirLength > 0) {
+                        enemy.direction.x /= dirLength;
+                        enemy.direction.y /= dirLength;
+                    }
+                    
+                    // Calculate speed with random variation
+                    let baseSpeed = enemy.vulnerable ? enemy.speed * 0.5 : enemy.speed;
+                    
+                    // Add random speed variation for more organic movement
+                    if (!enemy.speedVariation) {
+                        enemy.speedVariation = 0.8 + Math.random() * 0.4; // 0.8x to 1.2x speed
+                        enemy.speedChangeTimer = 0;
+                    }
+                    
+                    // Occasionally change speed variation
+                    enemy.speedChangeTimer += dt;
+                    if (enemy.speedChangeTimer > 2 + Math.random() * 3) { // Every 2-5 seconds
+                        enemy.speedVariation = 0.8 + Math.random() * 0.4;
+                        enemy.speedChangeTimer = 0;
+                    }
+                    
+                    const finalSpeed = baseSpeed * enemy.speedVariation;
+                    enemy.x += enemy.direction.x * finalSpeed * dt;
+                    enemy.y += enemy.direction.y * finalSpeed * dt;
+                    
+                    // Keep enemies in bounds with bounce
+                    if (enemy.x <= enemy.size || enemy.x >= this.canvas.width - enemy.size) {
+                        enemy.direction.x *= -1;
+                        enemy.x = Math.max(enemy.size, Math.min(this.canvas.width - enemy.size, enemy.x));
+                    }
+                    if (enemy.y <= enemy.size || enemy.y >= this.canvas.height - enemy.size) {
+                        enemy.direction.y *= -1;
+                        enemy.y = Math.max(enemy.size, Math.min(this.canvas.height - enemy.size, enemy.y));
+                    }
+                });
+            }
+            
+            updateParticles(dt) {
+                this.particles = this.particles.filter(particle => {
+                    particle.x += particle.vx * dt;
+                    particle.y += particle.vy * dt;
+                    particle.life -= dt;
+                    particle.alpha = particle.life / particle.maxLife;
+                    return particle.life > 0;
+                });
+            }
+            
+            createParticles(x, y, color, count = 5) {
+                for (let i = 0; i < count; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 200,
+                        vy: (Math.random() - 0.5) * 200,
+                        color: color,
+                        life: 0.5,
+                        maxLife: 0.5,
+                        alpha: 1,
+                        size: Math.random() * 4 + 2
+                    });
+                }
+            }
+            
+            checkCollisions() {
+                // Player vs collectibles
+                this.collectibles.forEach(collectible => {
+                    if (!collectible.collected && this.distance(this.player, collectible) < this.player.size + collectible.size) {
+                        collectible.collected = true;
+                        this.score += 10;
+                        this.createParticles(collectible.x, collectible.y, '#00BFFF', 3);
+                        // Trigger eating animation
+                        this.player.eating = true;
+                        this.player.mouthTimer = 0;
+                    }
+                });
+                
+                // Player vs power pellets
+                this.powerPellets.forEach(pellet => {
+                    if (!pellet.collected && this.distance(this.player, pellet) < this.player.size + pellet.size) {
+                        pellet.collected = true;
+                        this.score += 50;
+                        this.activatePowerPellet();
+                        this.createParticles(pellet.x, pellet.y, '#FF00FF', 8);
+                        // Trigger eating animation
+                        this.player.eating = true;
+                        this.player.mouthTimer = 0;
+                    }
+                });
+                
+                // Player vs enemies
+                this.enemies.forEach(enemy => {
+                    if (this.distance(this.player, enemy) < this.player.size + enemy.size) {
+                        if (enemy.vulnerable) {
+                            // Defeat enemy
+                            this.score += 200;
+                            this.createParticles(enemy.x, enemy.y, '#0080FF', 10);
+                            // Trigger eating animation for defeating enemy
+                            this.player.eating = true;
+                            this.player.mouthTimer = 0;
+                            // Respawn enemy at water polo goal
+                            const goalIndex = Math.floor(Math.random() * 2); // Choose random goal
+                            const goal = this.spawnGoals[goalIndex];
+                            const offsetX = (Math.random() - 0.5) * 40; // Reduced offset to stay closer to goals
+                            
+                            enemy.x = goal.x + offsetX;
+                            enemy.y = goal.y;
+                            enemy.spawnGoal = goalIndex;
+                            enemy.vulnerable = false;
+                            enemy.color = '#FF4444';
+                            enemy.justSpawned = true;
+                            enemy.spawnTimer = 1.0; // 1 second spawn protection
+                        } else {
+                            // Player dies
+                            this.loseLife();
+                        }
+                    }
+                });
+            }
+            
+            distance(a, b) {
+                const dx = a.x - b.x;
+                const dy = a.y - b.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            activatePowerPellet() {
+                this.powerPelletActive = true;
+                this.powerPelletTimer = 10000; // 10 seconds
+                this.enemies.forEach(enemy => {
+                    enemy.vulnerable = true;
+                    enemy.color = '#0080FF';
+                });
+            }
+            
+            loseLife() {
+                this.lives--;
+                this.createParticles(this.player.x, this.player.y, '#FFD700', 15);
+                
+                if (this.lives <= 0) {
+                    this.gameOver();
+                } else {
+                    // Reset player position
+                    this.player.x = 400;
+                    this.player.y = 300;
+                    
+                    // Brief invincibility period
+                    setTimeout(() => {
+                        // Player is vulnerable again
+                    }, 2000);
+                }
+            }
+            
+            nextLevel() {
+                this.level++;
+                this.collectibleCount = Math.min(30, 20 + this.level * 2);
+                this.createParticles(this.player.x, this.player.y, '#FFD700', 20);
+                this.initLevel();
+            }
+            
+            gameOver() {
+                this.gameState = 'gameOver';
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('gameOverMenu').classList.remove('hidden');
+            }
+            
+            render() {
+                // Clear canvas with gradient background
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, '#001122');
+                gradient.addColorStop(1, '#002244');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (this.gameState === 'loading') {
+                    // Show loading screen
+                    this.ctx.fillStyle = '#FFFFFF';
+                    this.ctx.font = 'bold 24px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.fillText('Loading Patu\'s Pirates...', this.canvas.width / 2, this.canvas.height / 2);
+                    this.ctx.textAlign = 'left';
+                    return;
+                }
+                
+                if (this.gameState === 'playing' || this.gameState === 'paused') {
+                    // Draw water polo goals
+                    this.spawnGoals.forEach(goal => {
+                        this.drawWaterpoloGoal(goal.x, goal.y);
+                    });
+                    
+                    // Draw collectibles with pulse effect
+                    this.collectibles.forEach(collectible => {
+                        if (!collectible.collected) {
+                            if (this.sprites.waterpoloBall) {
+                                const pulseScale = 1 + Math.sin(collectible.pulse) * 0.2;
+                                this.drawSprite(this.sprites.waterpoloBall, collectible.x, collectible.y, 16 * pulseScale, 16 * pulseScale);
+                            } else {
+                                const pulseSize = collectible.size + Math.sin(collectible.pulse) * 2;
+                                this.drawCircle(collectible.x, collectible.y, pulseSize, collectible.color);
+                            }
+                        }
+                    });
+                    
+                    // Draw power pellets with pulse effect and golden glow
+                    this.powerPellets.forEach(pellet => {
+                        if (!pellet.collected) {
+                            if (this.sprites.powerPellet) {
+                                const pulseScale = 1 + Math.sin(pellet.pulse) * 0.2;
+                                const glowIntensity = 0.3 + Math.sin(pellet.pulse * 1.5) * 0.2;
+                                
+                                // Add golden glow effect
+                                this.ctx.save();
+                                this.ctx.shadowColor = '#FFD700';
+                                this.ctx.shadowBlur = 20 * glowIntensity;
+                                this.ctx.shadowOffsetX = 0;
+                                this.ctx.shadowOffsetY = 0;
+                                
+                                this.drawSprite(this.sprites.powerPellet, pellet.x, pellet.y, 32 * pulseScale, 32 * pulseScale);
+                                
+                                this.ctx.restore();
+                            } else {
+                                const pulseSize = pellet.size + Math.sin(pellet.pulse) * 3;
+                                this.drawCircle(pellet.x, pellet.y, pulseSize, pellet.color);
+                            }
+                        }
+                    });
+                    
+                    // Draw enemies
+                    this.enemies.forEach(enemy => {
+                        if (this.sprites.pirateShip) {
+                            if (enemy.vulnerable) {
+                                // Add bright glow effect for vulnerable enemies
+                                this.ctx.save();
+                                
+                                // Create pulsing glow effect
+                                const glowIntensity = 0.5 + Math.sin(Date.now() * 0.01) * 0.3;
+                                this.ctx.shadowColor = '#00FFFF';  // Cyan glow
+                                this.ctx.shadowBlur = 25 * glowIntensity;
+                                this.ctx.shadowOffsetX = 0;
+                                this.ctx.shadowOffsetY = 0;
+                                
+                                // Draw the sprite with glow
+                                this.drawSprite(this.sprites.pirateShip, enemy.x, enemy.y, 36, 36);
+                                
+                                // Add additional blue tint overlay
+                                this.ctx.globalCompositeOperation = 'multiply';
+                                this.ctx.fillStyle = '#4080FF';
+                                this.ctx.fillRect(enemy.x - 18, enemy.y - 18, 36, 36);
+                                
+                                this.ctx.restore();
+                            } else {
+                                // Normal enemy - no glow
+                                this.drawSprite(this.sprites.pirateShip, enemy.x, enemy.y, 36, 36);
+                            }
+                        } else {
+                            // Fallback rendering for when sprites aren't loaded
+                            if (enemy.vulnerable) {
+                                // Glowing circle for vulnerable enemies
+                                this.ctx.save();
+                                const glowIntensity = 0.5 + Math.sin(Date.now() * 0.01) * 0.3;
+                                this.ctx.shadowColor = '#00FFFF';
+                                this.ctx.shadowBlur = 15 * glowIntensity;
+                                this.ctx.shadowOffsetX = 0;
+                                this.ctx.shadowOffsetY = 0;
+                                this.drawCircle(enemy.x, enemy.y, enemy.size, '#0080FF');
+                                this.ctx.restore();
+                            } else {
+                                // Normal red enemy
+                                this.drawCircle(enemy.x, enemy.y, enemy.size, '#FF4444');
+                            }
+                        }
+                    });
+                    
+                    // Draw particles
+                    this.particles.forEach(particle => {
+                        this.ctx.save();
+                        this.ctx.globalAlpha = particle.alpha;
+                        this.drawCircle(particle.x, particle.y, particle.size, particle.color);
+                        this.ctx.restore();
+                    });
+                    
+                    // Draw player (Patu) with mouth animation
+                    if (this.sprites.patuLogo) {
+                        // Scale based on mouth state for eating effect
+                        const scale = this.player.mouthOpen ? 1.1 : 1.0;
+                        const size = this.player.spriteSize * scale;
+                        this.drawSprite(this.sprites.patuLogo, this.player.x, this.player.y, size, size);
+                        
+                        // Add visual mouth effect when eating
+                        if (this.player.eating && this.player.mouthOpen) {
+                            this.ctx.save();
+                            this.ctx.globalAlpha = 0.7;
+                            this.ctx.fillStyle = '#FFD700';
+                            this.ctx.beginPath();
+                            this.ctx.arc(this.player.x, this.player.y, this.player.spriteSize * 0.6, 0, 2 * Math.PI);
+                            this.ctx.fill();
+                            this.ctx.restore();
+                        }
+                    } else {
+                        // Fallback circle with mouth animation
+                        if (this.player.mouthOpen) {
+                            // Draw Pac-Man style mouth
+                            this.ctx.fillStyle = this.player.color;
+                            this.ctx.beginPath();
+                            this.ctx.arc(this.player.x, this.player.y, this.player.size, 0.2 * Math.PI, 1.8 * Math.PI);
+                            this.ctx.lineTo(this.player.x, this.player.y);
+                            this.ctx.fill();
+                        } else {
+                            this.drawCircle(this.player.x, this.player.y, this.player.size, this.player.color);
+                        }
+                    }
+                    
+                    // Draw power pellet timer
+                    if (this.powerPelletActive) {
+                        const timeLeft = Math.ceil(this.powerPelletTimer / 1000);
+                        this.ctx.fillStyle = '#FFFF00';
+                        this.ctx.font = 'bold 20px Arial';
+                        this.ctx.fillText(`Power Time: ${timeLeft}`, 10, 30);
+                    }
+                    
+                    // Draw pause message
+                    if (this.gameState === 'paused') {
+                        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                        
+                        this.ctx.fillStyle = '#FFFFFF';
+                        this.ctx.font = 'bold 48px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText('PAUSED', this.canvas.width / 2, this.canvas.height / 2);
+                        this.ctx.font = 'bold 24px Arial';
+                        this.ctx.fillText('Press P to resume', this.canvas.width / 2, this.canvas.height / 2 + 50);
+                        this.ctx.textAlign = 'left';
+                    }
+                }
+            }
+            
+            drawCircle(x, y, radius, color) {
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // Add subtle glow effect
+                this.ctx.shadowColor = color;
+                this.ctx.shadowBlur = 5;
+                this.ctx.fill();
+                this.ctx.shadowBlur = 0;
+            }
+            
+            drawSprite(sprite, x, y, width, height) {
+                if (sprite && sprite.complete) {
+                    this.ctx.drawImage(sprite, x - width/2, y - height/2, width, height);
+                }
+            }
+            
+            drawWaterpoloGoal(x, y) {
+                const ctx = this.ctx;
+                ctx.save();
+                
+                // Goal dimensions
+                const goalWidth = 80;
+                const goalHeight = 40;
+                const postWidth = 4;
+                
+                // Goal posts (white)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(x - goalWidth/2, y - goalHeight/2, postWidth, goalHeight); // Left post
+                ctx.fillRect(x + goalWidth/2 - postWidth, y - goalHeight/2, postWidth, goalHeight); // Right post
+                ctx.fillRect(x - goalWidth/2, y - goalHeight/2, goalWidth, postWidth); // Top bar
+                
+                // Goal net pattern
+                ctx.strokeStyle = '#CCCCCC';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                // Vertical net lines
+                for (let i = 1; i < 6; i++) {
+                    const netX = x - goalWidth/2 + (goalWidth * i / 6);
+                    ctx.moveTo(netX, y - goalHeight/2 + postWidth);
+                    ctx.lineTo(netX, y + goalHeight/2);
+                }
+                
+                // Horizontal net lines
+                for (let i = 1; i < 4; i++) {
+                    const netY = y - goalHeight/2 + postWidth + (goalHeight - postWidth) * i / 4;
+                    ctx.moveTo(x - goalWidth/2 + postWidth, netY);
+                    ctx.lineTo(x + goalWidth/2 - postWidth, netY);
+                }
+                
+                ctx.stroke();
+                
+                // Goal shadow/depth effect
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(x - goalWidth/2 + postWidth, y - goalHeight/2 + postWidth, 
+                           goalWidth - 2*postWidth, goalHeight - postWidth);
+                
+                ctx.restore();
+            }
+            
+            updateUI() {
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('lives').textContent = this.lives;
+                document.getElementById('level').textContent = this.level;
+            }
+            
+            showMenu() {
+                document.getElementById('menu').classList.remove('hidden');
+                document.getElementById('gameOverMenu').classList.add('hidden');
+            }
+            
+            hideMenu() {
+                document.getElementById('menu').classList.add('hidden');
+                document.getElementById('gameOverMenu').classList.add('hidden');
+            }
+            
+            reset() {
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                this.powerPelletActive = false;
+                this.powerPelletTimer = 0;
+                this.particles = [];
+                this.player.x = 400;
+                this.player.y = 300;
+                this.collectibleCount = 25;
+                this.initLevel();
+                this.updateUI();
+            }
+        }
+        
+        // Global game instance
+        let game;
+        
+        function startGame() {
+            if (!game) {
+                game = new PatuPiratesGame();
+            }
+            game.reset();
+            game.start();
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            // Hide menu initially while loading
+            document.getElementById('menu').classList.add('hidden');
+            
+            game = new PatuPiratesGame();
+            
+            // Show menu once game is initialized
+            setTimeout(() => {
+                if (game.gameState === 'menu') {
+                    document.getElementById('menu').classList.remove('hidden');
+                    console.log('✅ Patu\'s Pirates game loaded and ready to play!');
+                }
+            }, 100);
+        });
+    </script>
+</body>
+</html>
