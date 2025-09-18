@@ -1,0 +1,2630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Patu: Water Polo Meets Arcade! - Mobile Portrait</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .game-container {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 100vw;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* Center content horizontally */
+        }
+        
+        h1 {
+            text-align: center;
+            color: #ffd700;
+            margin-bottom: 15px;
+            font-size: clamp(1.5em, 4vw, 2.5em);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            line-height: 1.2;
+        }
+        
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            font-size: clamp(14px, 3vw, 18px);
+            font-weight: bold;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            gap: 15px;
+        }
+        
+        .game-info > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 60px;
+        }
+        
+        .game-info .label {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-bottom: 2px;
+        }
+        
+        .game-info .value {
+            font-size: 1.2em;
+            color: #4a90e2;
+        }
+        
+        canvas {
+            border: 3px solid #4a90e2;
+            border-radius: 10px;
+            background: #000;
+            display: block;
+            max-width: 100%;
+            height: auto;
+            touch-action: none;
+            margin: 0 auto; /* Center canvas horizontally */
+        }
+        
+        /* Responsive canvas sizing for mobile */
+        @media (max-width: 768px) {
+            canvas {
+                width: 100% !important;
+                height: auto !important;
+                max-width: 100vw;
+            }
+            
+            .game-container {
+                padding: 5px;
+                margin: 5px;
+            }
+            
+            h1 {
+                font-size: clamp(1.2em, 5vw, 1.8em);
+                margin-bottom: 10px;
+            }
+            
+            .game-info {
+                font-size: clamp(12px, 4vw, 16px);
+                margin-bottom: 10px;
+                padding: 8px 12px;
+                gap: 10px;
+            }
+            
+            .game-info > div {
+                min-width: 50px;
+            }
+            
+            .game-info .value {
+                font-size: 1.1em;
+            }
+        }
+        
+        .controls {
+            text-align: center;
+            margin-top: 15px;
+            color: #b0b0b0;
+        }
+        
+        .menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background: rgba(30, 60, 114, 0.95);
+            padding: 30px 25px;
+            border-radius: 15px;
+            border: 2px solid #4a90e2;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            max-width: 90%;
+            width: 300px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: clamp(14px, 4vw, 18px);
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 8px;
+            transition: all 0.3s ease;
+            min-height: 48px;
+            min-width: 120px;
+            touch-action: manipulation;
+            user-select: none;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #357abd 0%, #2968a3 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Mobile Controls - Portrait Optimized Layout */
+        .mobile-controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: none;
+            z-index: 1000;
+            pointer-events: none;
+            height: 140px; /* Fixed height for control area */
+        }
+        
+        .mobile-controls.show {
+            display: flex;
+        }
+        
+        .touch-joystick {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            pointer-events: all;
+            touch-action: none;
+            user-select: none;
+        }
+        
+        .joystick-knob {
+            width: 35px;
+            height: 35px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mobile-buttons {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 140px;
+            pointer-events: none;
+        }
+        
+        .mobile-button {
+            width: 60px;
+            height: 60px;
+            background: rgba(74, 144, 226, 0.8);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            pointer-events: all;
+            touch-action: manipulation;
+            user-select: none;
+            transition: all 0.2s ease;
+            position: absolute;
+        }
+        
+        /* Position pause button in bottom-left corner */
+        .mobile-button#pauseButton {
+            bottom: 20px;
+            left: 20px;
+        }
+        
+        /* Position settings button in bottom-right corner */
+        .mobile-button#menuButton {
+            bottom: 20px;
+            right: 20px;
+        }
+        
+        .mobile-button:active {
+            background: rgba(53, 122, 189, 0.9);
+            transform: scale(0.95);
+        }
+        
+        @media (max-width: 768px) {
+            .desktop-controls {
+                display: none;
+            }
+            
+            .mobile-controls-info {
+                display: block;
+            }
+            
+            .menu {
+                padding: 25px 20px;
+                width: 280px;
+                max-width: 85%;
+            }
+            
+            button {
+                padding: 12px 20px;
+                margin: 6px;
+                font-size: clamp(14px, 4vw, 16px);
+                min-height: 44px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .touch-joystick {
+                width: 90px;
+                height: 90px;
+            }
+            
+            .joystick-knob {
+                width: 30px;
+                height: 30px;
+            }
+            
+            .mobile-button {
+                width: 55px;
+                height: 55px;
+                font-size: 18px;
+            }
+        }
+            
+            .mobile-button {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+        }
+        
+        /* Portrait Orientation Enforcement */
+        .rotate-device-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        .rotate-device-overlay.show {
+            display: flex;
+        }
+        
+        .rotate-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            animation: rotate-pulse 2s infinite;
+        }
+        
+        @keyframes rotate-pulse {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(90deg) scale(1.1); }
+        }
+        
+        .rotate-message {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .rotate-instruction {
+            font-size: 1em;
+            opacity: 0.8;
+            max-width: 300px;
+        }
+        
+        /* Hide mobile controls in landscape */
+        @media (orientation: landscape) {
+            .mobile-controls {
+                display: none !important;
+            }
+        }
+        
+        /* Show rotation overlay in landscape */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .rotate-device-overlay {
+                display: flex !important;
+            }
+        }
+    </style>
+</head><body>
+   
+ <div class="game-container">
+        <h1>🏴‍☠️ Pac-Patu: Water Polo Meets Arcade!</h1>
+        
+        <div class="game-info">
+            <div>
+                <div class="label">Score</div>
+                <div class="value" id="score">0</div>
+            </div>
+            <div>
+                <div class="label">Lives</div>
+                <div class="value" id="lives">3</div>
+            </div>
+            <div>
+                <div class="label">Level</div>
+                <div class="value" id="level">1</div>
+            </div>
+        </div>
+        
+        <div style="position: relative;">
+            <canvas id="gameCanvas" width="360" height="540"></canvas>
+            
+            <div id="menu" class="menu">
+                <h2>🏴‍☠️ Pac-Patu</h2>
+                <p>Collect waterpolo balls while avoiding pirate ships!</p>
+                <p>Use arrow keys or WASD to move</p>
+                <button onclick="startGame()">Start Game</button>
+                <div style="margin-top: 20px; font-size: 12px; opacity: 0.7;">v1.01</div>
+            </div>
+            
+            <div id="gameOverMenu" class="menu hidden">
+                <h2>Game Over</h2>
+                <p>Final Score: <span id="finalScore">0</span></p>
+                <button onclick="startGame()">Play Again</button>
+                <button onclick="game.showMenu()">Main Menu</button>
+                <div style="margin-top: 15px; font-size: 14px; opacity: 0.8;">Press SPACE to play again</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <span class="desktop-controls">Use arrow keys or WASD to move • P to pause • ESC for menu</span>
+            <span class="mobile-controls-info" style="display: none;">Use virtual joystick to move • Tap pause button</span>
+        </div>
+    </div>
+
+    <!-- Portrait Orientation Overlay -->
+    <div class="rotate-device-overlay" id="rotateOverlay">
+        <div class="rotate-icon">📱</div>
+        <div class="rotate-message">Please Rotate Your Device</div>
+        <div class="rotate-instruction">This game is optimized for portrait orientation</div>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div class="mobile-controls" id="mobileControls">
+        <div class="touch-joystick" id="touchJoystick">
+            <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+        
+        <div class="mobile-buttons">
+            <div class="mobile-button" id="pauseButton">⏸️</div>
+            <div class="mobile-button" id="menuButton">📱</div>
+        </div>
+    </div>
+
+    <script>
+        console.log('🎮 Starting Pac-Patu Mobile with proper image loading...');
+        
+        // Mobile Detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         ('ontouchstart' in window) || 
+                         (navigator.maxTouchPoints > 0);
+        
+        console.log('📱 Mobile detected:', isMobile);
+        
+        if (isMobile) {
+            document.getElementById('mobileControls').classList.add('show');
+            document.querySelector('.desktop-controls').style.display = 'none';
+            document.querySelector('.mobile-controls-info').style.display = 'block';
+        }
+        
+        class PatuPiratesGame {
+            constructor() {
+                console.log('🎮 PatuPiratesGame constructor called');
+                
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                // Game state
+                this.gameState = 'menu';
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                
+                // Timing
+                this.lastTime = 0;
+                
+                // Performance monitoring for portrait optimization
+                this.frameCount = 0;
+                this.currentFPS = 60;
+                this.lastFPSUpdate = 0;
+                this.performanceLevel = 'high'; // high, medium, low
+                this.adaptiveQuality = true;
+                this.fpsHistory = [];
+                this.performanceMetrics = {
+                    averageFPS: 60,
+                    minFPS: 60,
+                    frameDrops: 0,
+                    renderTime: 0
+                };
+                
+                // Input
+                this.keys = {};
+                
+                // Mobile touch input
+                this.touchJoystick = {
+                    active: false,
+                    deltaX: 0,
+                    deltaY: 0,
+                    maxDistance: 35, // Reduced for 100px joystick (was 40 for 120px)
+                    sensitivity: 0.05, // Increased to match working test values
+                    smoothing: 0.15, // Input smoothing factor for fluid movement
+                    deadZone: 0.1, // Dead zone to prevent accidental movement
+                    lastX: 0, // For smoothing calculations
+                    lastY: 0,
+                    centerX: 0, // Joystick center position
+                    centerY: 0
+                };
+                
+                // Player (Patu logo) - centered in portrait canvas
+                this.player = {
+                    x: 180, // Center of 360px width
+                    y: 270, // Center of 540px height
+                    size: 20,
+                    spriteSize: 40,
+                    speed: 200,
+                    color: '#FFD700',
+                    eating: false,
+                    mouthTimer: 0,
+                    mouthOpen: false
+                };
+                
+                // Game objects
+                this.enemies = [];
+                this.collectibles = [];
+                this.powerPellets = [];
+                this.particles = [];
+                
+                // Performance optimization settings for portrait mobile
+                this.maxParticles = 60; // Will be adjusted based on performance
+                this.shadowQuality = true; // Will be adjusted based on performance
+                this.glowEffects = true; // Will be adjusted based on performance
+                
+                // Water polo goals for spawning - moved closer to pool ends for more playable area
+                this.spawnGoals = [
+                    { x: this.canvas.width / 2, y: 30, name: 'top' },
+                    { x: this.canvas.width / 2, y: this.canvas.height - 30, name: 'bottom' }
+                ];
+                
+                // Game settings
+                this.enemyCount = 4;
+                this.collectibleCount = 25;
+                this.powerPelletActive = false;
+                this.powerPelletTimer = 0;
+                
+                // Sprites - using actual image files
+                this.sprites = {};
+                
+                // Audio system
+                this.audioContext = null;
+                this.audioEnabled = false;
+                this.masterVolume = 0.7;
+                this.sfxVolume = 0.8;
+                
+                // Enhanced AI settings optimized for portrait vertical movement
+                this.aiConfig = {
+                    separationRadius: 45, // Reduced for 360px width
+                    separationStrength: 0.5, // Increased to maintain spacing across narrow width
+                    wanderStrength: 0.3, // Reduced to focus more on pursuit
+                    directionChangeChance: 0.02, // Slightly increased for more dynamic movement
+                    speedVariationRange: [0.8, 1.2],
+                    // New vertical movement settings
+                    verticalBias: 0.6, // Prioritize vertical movement (0.5 = equal, 1.0 = only vertical)
+                    horizontalExploration: 0.4, // How much to explore horizontally
+                    poolWidthAwareness: 360, // Canvas width for separation calculations
+                    verticalPursuitStrength: 1.2, // Boost vertical pursuit behavior
+                    wanderVerticalBias: 0.7, // Make wandering more vertical
+                    // Vulnerable fleeing behavior settings - Updated for Requirements 4.4, 4.5
+                    fleeingSideBias: 0.3, // Reduced side bias to allow more vertical fleeing (per Requirement 4.5)
+                    fleeingVerticalBias: 0.7, // Prioritize vertical fleeing for portrait layout (Requirement 4.5)
+                    fleeingBounceStrength: 1.2, // How strongly enemies bounce off walls (increased to prevent edge-sticking)
+                    fleeingEvasiveStrength: 0.6, // How evasive the fleeing movement is
+                    fleeingVariationChance: 0.05, // Chance for random evasive maneuvers
+                    wallBounceDistance: 40, // Distance from wall to start bouncing behavior (increased detection zone)
+                    fleeingSpeedMultiplier: 0.5, // Speed reduction when vulnerable (from base implementation)
+                    updateFrequency: 1.0 // Will be adjusted based on performance
+                };
+                
+                // Audio synchronization for portrait gameplay
+                this.audioSync = {
+                    lastSoundTime: 0,
+                    soundQueue: [],
+                    maxConcurrentSounds: 3, // Limit for mobile performance
+                    activeSounds: 0
+                };
+                
+                // Setup input, audio, and load sprites
+                this.setupInput();
+                this.setupMobileControls();
+                this.setupCanvas();
+                this.setupOrientationHandling();
+                this.initAudio();
+                this.loadSprites();
+                
+                console.log('✅ PatuPiratesGame constructor completed');
+            }           
+ 
+            initAudio() {
+                try {
+                    // Initialize Web Audio API
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.audioEnabled = true;
+                    console.log('🔊 Audio system initialized');
+                    
+                    // Handle audio context suspension (browser autoplay policy)
+                    if (this.audioContext.state === 'suspended') {
+                        const resumeAudio = () => {
+                            if (this.audioContext.state === 'suspended') {
+                                this.audioContext.resume().then(() => {
+                                    console.log('🔊 Audio context resumed');
+                                });
+                            }
+                        };
+                        
+                        document.addEventListener('click', resumeAudio, { once: true });
+                        document.addEventListener('touchstart', resumeAudio, { once: true });
+                    }
+                } catch (error) {
+                    console.warn('⚠️ Audio not available:', error);
+                    this.audioEnabled = false;
+                }
+            }
+            
+            playSound(frequency, duration = 0.2, type = 'sine', volume = 0.3) {
+                if (!this.audioEnabled || !this.audioContext) return;
+                
+                // Performance-based audio limiting for portrait mobile
+                const currentTime = performance.now();
+                if (this.audioSync.activeSounds >= this.audioSync.maxConcurrentSounds) {
+                    return; // Skip sound if too many are playing
+                }
+                
+                // Prevent audio spam (minimum 50ms between sounds)
+                if (currentTime - this.audioSync.lastSoundTime < 50) {
+                    return;
+                }
+                
+                try {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = type;
+                    
+                    const now = this.audioContext.currentTime;
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(volume * this.masterVolume * this.sfxVolume, now + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+                    
+                    // Track active sounds for performance
+                    this.audioSync.activeSounds++;
+                    this.audioSync.lastSoundTime = currentTime;
+                    
+                    oscillator.onended = () => {
+                        this.audioSync.activeSounds = Math.max(0, this.audioSync.activeSounds - 1);
+                    };
+                    
+                    oscillator.start(now);
+                    oscillator.stop(now + duration);
+                } catch (error) {
+                    console.warn('Sound playback failed:', error);
+                }
+            }
+            
+            playCollectSound() {
+                // Water splash sound
+                this.playSound(800, 0.1, 'sine', 0.2);
+                setTimeout(() => this.playSound(400, 0.1, 'sine', 0.15), 50);
+                this.hapticFeedback('collect');
+            }
+            
+            playPowerPelletSound() {
+                // Whistle sound
+                this.playSound(1200, 0.3, 'sine', 0.3);
+                this.hapticFeedback('powerPellet');
+            }
+            
+            playEnemyDefeatSound() {
+                // Ship sinking sound
+                this.playSound(200, 0.5, 'sawtooth', 0.25);
+            }
+            
+            playDeathSound() {
+                // Dramatic falling sound
+                for (let i = 0; i < 5; i++) {
+                    setTimeout(() => {
+                        this.playSound(800 - i * 150, 0.2, 'square', 0.2);
+                    }, i * 100);
+                }
+                this.hapticFeedback('death');
+            }
+
+            loadSprites() {
+                console.log('🎨 Loading actual image sprites...');
+                
+                // Load Patu logo
+                this.sprites.patuLogo = new Image();
+                this.sprites.patuLogo.onload = () => console.log('✅ Patu logo loaded');
+                this.sprites.patuLogo.onerror = () => console.warn('⚠️ Patu logo failed to load');
+                this.sprites.patuLogo.src = 'Images/Patu Pirate logo.png';
+                
+                // Load waterpolo ball
+                this.sprites.waterpoloBall = new Image();
+                this.sprites.waterpoloBall.onload = () => console.log('✅ Waterpolo ball loaded');
+                this.sprites.waterpoloBall.onerror = () => console.warn('⚠️ Waterpolo ball failed to load');
+                this.sprites.waterpoloBall.src = 'Images/waterpolo ball.png';
+                
+                // Use waterpolo ball for power pellets too (larger size)
+                this.sprites.powerPellet = this.sprites.waterpoloBall;
+                
+                // Create pirate ship sprite programmatically (since we don't have an image)
+                this.createPirateShipSprite();
+                
+                console.log('🎨 Sprite loading initiated');
+            }
+            
+            createPirateShipSprite() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 40;
+                canvas.height = 40;
+                const ctx = canvas.getContext('2d');
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, 40, 40);
+                
+                // Draw ship hull (brown)
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(10, 22, 20, 10);
+                
+                // Draw ship bow (pointed front)
+                ctx.beginPath();
+                ctx.moveTo(10, 22);
+                ctx.lineTo(5, 27);
+                ctx.lineTo(10, 32);
+                ctx.fill();
+                
+                // Draw ship stern (back)
+                ctx.fillRect(30, 22, 5, 10);
+                
+                // Draw mast (dark brown)
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(19, 8, 2, 20);
+                
+                // Draw sail (black for pirate ship)
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(12, 8, 14, 14);
+                
+                // Draw skull (white)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(19, 13, 3, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Draw skull eyes (black)
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(17, 12, 1, 1);
+                ctx.fillRect(20, 12, 1, 1);
+                
+                // Draw crossbones (white)
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(15, 15);
+                ctx.lineTo(23, 15);
+                ctx.moveTo(19, 11);
+                ctx.lineTo(19, 19);
+                ctx.stroke();
+                
+                // Add small circles at bone ends
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(15, 15, 1, 0, 2 * Math.PI);
+                ctx.arc(23, 15, 1, 0, 2 * Math.PI);
+                ctx.arc(19, 11, 1, 0, 2 * Math.PI);
+                ctx.arc(19, 19, 1, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                this.sprites.pirateShip = canvas;
+                console.log('✅ Enhanced pirate ship sprite created');
+            }
+            
+            setupInput() {
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    
+                    if (e.code === 'KeyP' && this.gameState === 'playing') {
+                        this.gameState = 'paused';
+                    } else if (e.code === 'KeyP' && this.gameState === 'paused') {
+                        this.gameState = 'playing';
+                    } else if (e.code === 'Escape') {
+                        this.gameState = 'menu';
+                        this.showMenu();
+                    } else if (e.code === 'Space' && this.gameState === 'gameOver') {
+                        this.reset();
+                        this.start();
+                    }
+                });
+                
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+            }
+            
+            setupMobileControls() {
+                if (!isMobile) return;
+                
+                console.log('🕹️ Setting up mobile controls...');
+                
+                const joystick = document.getElementById('touchJoystick');
+                const knob = document.getElementById('joystickKnob');
+                const pauseButton = document.getElementById('pauseButton');
+                const menuButton = document.getElementById('menuButton');
+                
+                // Touch joystick setup
+                this.setupTouchJoystick(joystick, knob);
+                
+                // Mobile buttons setup
+                pauseButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    
+                    // Disable touch controls in landscape mode
+                    if (window.innerWidth > window.innerHeight) {
+                        return;
+                    }
+                    
+                    this.hapticFeedback('light');
+                    this.togglePause();
+                });
+                
+                menuButton.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    
+                    // Disable touch controls in landscape mode
+                    if (window.innerWidth > window.innerHeight) {
+                        return;
+                    }
+                    
+                    this.hapticFeedback('light');
+                    if (this.gameState === 'playing' || this.gameState === 'paused') {
+                        this.gameState = 'menu';
+                        this.showMenu();
+                    }
+                });
+                
+                console.log('✅ Mobile controls setup complete');
+            }
+            
+            setupTouchJoystick(joystick, knob) {
+                let startX, startY;
+                
+                joystick.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    
+                    // Disable touch controls in landscape mode
+                    if (window.innerWidth > window.innerHeight) {
+                        return;
+                    }
+                    
+                    const touch = e.touches[0];
+                    
+                    this.touchJoystick.active = true;
+                    this.hapticFeedback('joystickStart');
+                    
+                    // FIXED: Use actual touch coordinates as starting point
+                    startX = touch.clientX;
+                    startY = touch.clientY;
+                    
+                    // Store joystick center for visual reference only
+                    const rect = joystick.getBoundingClientRect();
+                    this.touchJoystick.centerX = rect.left + rect.width / 2;
+                    this.touchJoystick.centerY = rect.top + rect.height / 2;
+                    
+                    // Reset smoothing values
+                    this.touchJoystick.lastX = 0;
+                    this.touchJoystick.lastY = 0;
+                    
+                    knob.style.transition = 'none';
+                });
+                
+                joystick.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (!this.touchJoystick.active) return;
+                    
+                    const touch = e.touches[0];
+                    // Calculate delta from initial touch position (no scaling needed for relative movement)
+                    let deltaX = touch.clientX - startX;
+                    let deltaY = touch.clientY - startY;
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    
+                    // Apply dead zone to prevent accidental movement
+                    const deadZoneDistance = this.touchJoystick.maxDistance * this.touchJoystick.deadZone;
+                    if (distance < deadZoneDistance) {
+                        deltaX = 0;
+                        deltaY = 0;
+                    }
+                    
+                    // Constrain to joystick bounds
+                    if (distance > this.touchJoystick.maxDistance) {
+                        const angle = Math.atan2(deltaY, deltaX);
+                        deltaX = Math.cos(angle) * this.touchJoystick.maxDistance;
+                        deltaY = Math.sin(angle) * this.touchJoystick.maxDistance;
+                    }
+                    
+                    // Apply smoothing for fluid movement
+                    const smoothing = this.touchJoystick.smoothing;
+                    this.touchJoystick.deltaX = this.touchJoystick.lastX + (deltaX - this.touchJoystick.lastX) * smoothing;
+                    this.touchJoystick.deltaY = this.touchJoystick.lastY + (deltaY - this.touchJoystick.lastY) * smoothing;
+                    
+                    // Store for next frame smoothing
+                    this.touchJoystick.lastX = this.touchJoystick.deltaX;
+                    this.touchJoystick.lastY = this.touchJoystick.deltaY;
+                    
+                    // Update knob position with smoothed values
+                    knob.style.transform = `translate(${this.touchJoystick.deltaX - 17.5}px, ${this.touchJoystick.deltaY - 17.5}px)`;
+                    
+                    // Subtle haptic feedback for movement (throttled)
+                    if (Math.abs(this.touchJoystick.deltaX) > 5 || Math.abs(this.touchJoystick.deltaY) > 5) {
+                        if (!this.lastHapticTime || Date.now() - this.lastHapticTime > 100) {
+                            this.hapticFeedback('joystickMove');
+                            this.lastHapticTime = Date.now();
+                        }
+                    }
+                });
+                
+                joystick.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.touchJoystick.active = false;
+                    
+                    // Smooth reset to center
+                    this.touchJoystick.deltaX = 0;
+                    this.touchJoystick.deltaY = 0;
+                    this.touchJoystick.lastX = 0;
+                    this.touchJoystick.lastY = 0;
+                    
+                    // Smooth knob return animation
+                    knob.style.transition = 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    knob.style.transform = 'translate(-50%, -50%)';
+                });
+            }
+            
+            togglePause() {
+                if (this.gameState === 'playing') {
+                    this.gameState = 'paused';
+                } else if (this.gameState === 'paused') {
+                    this.gameState = 'playing';
+                }
+            }
+            
+            setupCanvas() {
+                // Initialize responsive scaling system
+                this.initializeResponsiveScaling();
+                
+                // Apply initial scaling
+                this.updateCanvasScaling();
+                
+                // Handle orientation changes and window resize
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => {
+                        this.updateCanvasScaling();
+                        this.updateTouchControlScaling();
+                    }, 200);
+                });
+                
+                window.addEventListener('resize', () => {
+                    setTimeout(() => {
+                        this.updateCanvasScaling();
+                        this.updateTouchControlScaling();
+                    }, 100);
+                });
+            }
+            
+            initializeResponsiveScaling() {
+                // Responsive scaling system for portrait orientation
+                this.scalingConfig = {
+                    baseWidth: 360,
+                    baseHeight: 540,
+                    aspectRatio: 2/3, // Portrait 2:3 ratio
+                    minScale: 0.5,    // Minimum scaling for very small screens
+                    maxScale: 1.5,    // Maximum scaling for large screens
+                    currentScale: 1.0,
+                    scaledWidth: 360,
+                    scaledHeight: 540
+                };
+                
+                // Device detection for scaling optimization
+                this.deviceInfo = {
+                    screenWidth: window.innerWidth,
+                    screenHeight: window.innerHeight,
+                    devicePixelRatio: window.devicePixelRatio || 1,
+                    isSmallScreen: false,
+                    isLargeScreen: false
+                };
+                
+                console.log('📱 Responsive scaling system initialized');
+            }
+            
+            updateCanvasScaling() {
+                // Get current viewport dimensions
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                // Update device info
+                this.deviceInfo.screenWidth = viewportWidth;
+                this.deviceInfo.screenHeight = viewportHeight;
+                
+                // Calculate optimal scale based on available space
+                const scaleX = viewportWidth / this.scalingConfig.baseWidth;
+                const scaleY = viewportHeight / this.scalingConfig.baseHeight;
+                
+                // Use the smaller scale to maintain aspect ratio
+                let optimalScale = Math.min(scaleX, scaleY);
+                
+                // Apply scaling constraints
+                optimalScale = Math.max(this.scalingConfig.minScale, optimalScale);
+                optimalScale = Math.min(this.scalingConfig.maxScale, optimalScale);
+                
+                // Update scaling configuration
+                this.scalingConfig.currentScale = optimalScale;
+                this.scalingConfig.scaledWidth = this.scalingConfig.baseWidth * optimalScale;
+                this.scalingConfig.scaledHeight = this.scalingConfig.baseHeight * optimalScale;
+                
+                // Detect screen size categories
+                this.deviceInfo.isSmallScreen = viewportWidth < 360 || viewportHeight < 540;
+                this.deviceInfo.isLargeScreen = viewportWidth > 540 || viewportHeight > 810;
+                
+                // Apply scaling to canvas
+                this.canvas.style.width = `${this.scalingConfig.scaledWidth}px`;
+                this.canvas.style.height = `${this.scalingConfig.scaledHeight}px`;
+                
+                // Center the canvas
+                const gameContainer = document.querySelector('.game-container');
+                if (gameContainer) {
+                    gameContainer.style.width = `${this.scalingConfig.scaledWidth + 20}px`;
+                    gameContainer.style.maxWidth = `${this.scalingConfig.scaledWidth + 20}px`;
+                }
+                
+                // Update touch control scaling
+                this.updateTouchControlScaling();
+                
+                console.log(`📏 Canvas scaled: ${optimalScale.toFixed(2)}x (${this.scalingConfig.scaledWidth}x${this.scalingConfig.scaledHeight})`);
+                console.log(`📱 Device: ${viewportWidth}x${viewportHeight}, Small: ${this.deviceInfo.isSmallScreen}, Large: ${this.deviceInfo.isLargeScreen}`);
+            }
+            
+            updateTouchControlScaling() {
+                const scale = this.scalingConfig.currentScale;
+                const mobileControls = document.querySelector('.mobile-controls');
+                
+                if (mobileControls) {
+                    // Scale touch controls proportionally
+                    const joystickSize = Math.max(80, 100 * scale);
+                    const buttonSize = Math.max(50, 60 * scale);
+                    
+                    // Update joystick scaling
+                    const joystick = document.getElementById('joystick');
+                    if (joystick) {
+                        joystick.style.width = `${joystickSize}px`;
+                        joystick.style.height = `${joystickSize}px`;
+                        
+                        // Update joystick position to stay centered below canvas
+                        const canvasBottom = this.scalingConfig.scaledHeight + 20; // Account for container padding
+                        joystick.style.bottom = '20px';
+                        joystick.style.left = '50%';
+                        joystick.style.transform = 'translateX(-50%)';
+                    }
+                    
+                    // Update button scaling
+                    const pauseBtn = document.getElementById('pauseBtn');
+                    const settingsBtn = document.getElementById('settingsBtn');
+                    
+                    if (pauseBtn) {
+                        pauseBtn.style.width = `${buttonSize}px`;
+                        pauseBtn.style.height = `${buttonSize}px`;
+                        pauseBtn.style.fontSize = `${Math.max(14, 16 * scale)}px`;
+                    }
+                    
+                    if (settingsBtn) {
+                        settingsBtn.style.width = `${buttonSize}px`;
+                        settingsBtn.style.height = `${buttonSize}px`;
+                        settingsBtn.style.fontSize = `${Math.max(14, 16 * scale)}px`;
+                    }
+                    
+                    // Update touch sensitivity based on scale (using correct base values)
+                    if (this.touchJoystick) {
+                        // Base sensitivity is 0.03, scale it appropriately
+                        this.touchJoystick.sensitivity = 0.03;
+                        // Dead zone remains as ratio (10%)
+                        this.touchJoystick.deadZone = 0.1;
+                        // Max distance scales with joystick size (base: 35px)
+                        this.touchJoystick.maxDistance = 35;
+                    }
+                    
+                    console.log(`🎮 Touch controls scaled: Joystick ${joystickSize}px, Buttons ${buttonSize}px`);
+                }
+            }
+            
+            getScaledCoordinates(x, y) {
+                // Convert screen coordinates to game coordinates
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                
+                return {
+                    x: (x - rect.left) * scaleX,
+                    y: (y - rect.top) * scaleY
+                };
+            }
+            
+            getScreenCoordinates(gameX, gameY) {
+                // Convert game coordinates to screen coordinates
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = rect.width / this.canvas.width;
+                const scaleY = rect.height / this.canvas.height;
+                
+                return {
+                    x: gameX * scaleX + rect.left,
+                    y: gameY * scaleY + rect.top
+                };
+            }
+            
+            setupOrientationHandling() {
+                if (!isMobile) return;
+                
+                console.log('🔄 Setting up portrait orientation enforcement...');
+                
+                this.rotateOverlay = document.getElementById('rotateOverlay');
+                this.wasGamePaused = false;
+                
+                // Check orientation on load
+                this.checkOrientation();
+                
+                // Listen for orientation changes
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => this.checkOrientation(), 100);
+                });
+                
+                // Also listen for resize events (more reliable on some devices)
+                window.addEventListener('resize', () => {
+                    setTimeout(() => this.checkOrientation(), 100);
+                });
+                
+                console.log('✅ Portrait orientation enforcement setup complete');
+            }
+            
+            checkOrientation() {
+                if (!isMobile) return;
+                
+                const isLandscape = window.innerWidth > window.innerHeight;
+                const isShortLandscape = isLandscape && window.innerHeight < 500;
+                
+                if (isLandscape || isShortLandscape) {
+                    // Device is in landscape - show rotation prompt
+                    this.showRotationPrompt();
+                } else {
+                    // Device is in portrait - hide rotation prompt
+                    this.hideRotationPrompt();
+                }
+            }
+            
+            showRotationPrompt() {
+                if (!this.rotateOverlay) return;
+                
+                // Pause game if it's currently playing
+                if (this.gameState === 'playing') {
+                    this.wasGamePaused = false;
+                    this.gameState = 'paused';
+                } else if (this.gameState === 'paused') {
+                    this.wasGamePaused = true;
+                }
+                
+                // Show overlay
+                this.rotateOverlay.classList.add('show');
+                
+                console.log('📱 Showing rotation prompt - device in landscape');
+            }
+            
+            hideRotationPrompt() {
+                if (!this.rotateOverlay) return;
+                
+                // Hide overlay
+                this.rotateOverlay.classList.remove('show');
+                
+                // Resume game if it wasn't previously paused
+                if (this.gameState === 'paused' && !this.wasGamePaused) {
+                    this.gameState = 'playing';
+                }
+                
+                console.log('📱 Hiding rotation prompt - device in portrait');
+            }
+            
+            hapticFeedback(type = 'light') {
+                if (!navigator.vibrate) return;
+                
+                const patterns = {
+                    light: 25,                    // Quick tap feedback
+                    medium: 50,                   // Button press feedback
+                    heavy: 100,                   // Strong action feedback
+                    collect: [30, 20, 30],        // Collectible pickup
+                    powerPellet: [80, 40, 80, 40, 80], // Power pellet collection
+                    death: [150, 100, 150],       // Player death
+                    enemyDefeat: [40, 30, 40],    // Enemy defeat
+                    levelComplete: [60, 40, 60, 40, 100], // Level completion
+                    joystickStart: 20,            // Joystick touch start
+                    joystickMove: 15,             // Subtle joystick movement feedback
+                    wallBounce: 35                // Wall collision feedback
+                };
+                
+                try {
+                    navigator.vibrate(patterns[type] || patterns.light);
+                } catch (error) {
+                    console.warn('Haptic feedback failed:', error);
+                }
+            }
+            
+            start() {
+                console.log('🚀 Game start() called');
+                this.gameState = 'playing';
+                this.hideMenu();
+                this.initLevel();
+                this.gameLoop();
+                console.log('✅ Game started successfully');
+            }
+            
+            hideMenu() {
+                document.getElementById('menu').classList.add('hidden');
+                document.getElementById('gameOverMenu').classList.add('hidden');
+            }
+            
+            showMenu() {
+                document.getElementById('menu').classList.remove('hidden');
+                document.getElementById('gameOverMenu').classList.add('hidden');
+            }           
+ 
+            initLevel() {
+                // Create collectibles in waterpolo formations
+                this.collectibles = [];
+                
+                // WATERPOLO AUTHENTIC FORMATIONS - Scalable meter-based positioning
+                // Pool dimensions: 30m width × 20m length (oriented vertically)
+                // Canvas: 360px × 540px with 20px margins = 320px × 500px usable
+                
+                const poolWidth = 30; // meters
+                const poolLength = 20; // meters
+                const poolMargin = 20; // pixels
+                const usableWidth = this.canvas.width - (2 * poolMargin); // 320px
+                const usableHeight = this.canvas.height - (2 * poolMargin); // 500px
+                const centerX = this.canvas.width / 2; // 180px
+                
+                // Convert meters to pixels (scalable)
+                const meterToPixelX = usableWidth / poolWidth; // ~10.67px per meter
+                const meterToPixelY = usableHeight / poolLength; // 25px per meter
+                
+                // Pool boundaries
+                const poolStartX = poolMargin;
+                const poolStartY = poolMargin;
+                const poolEndY = this.canvas.height - poolMargin;
+                
+                // === TOP FORMATION (3-2-1 Pattern) ===
+                // 3 balls at 3m line, 2m from edges
+                const line3m = poolStartY + (3 * meterToPixelY); // 3m from top goal
+                const line5m = poolStartY + (5 * meterToPixelY); // 5m from top goal  
+                const line7m = poolStartY + (7 * meterToPixelY); // 7m from top goal
+                
+                const edge2m = poolStartX + (2 * meterToPixelX); // 2m from left edge
+                const edge28m = poolStartX + (28 * meterToPixelX); // 2m from right edge (28m from left)
+                
+                // Top row (3 balls at 3m line) - 2m from edges, center
+                this.collectibles.push(
+                    { x: edge2m, y: line3m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 }, // Left (2m from edge)
+                    { x: centerX, y: line3m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 }, // Center (15m)
+                    { x: edge28m, y: line3m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 } // Right (2m from edge)
+                );
+                
+                // Middle row (2 balls at 5m line) - Halfway to center positions
+                const halfway7_5m = poolStartX + (7.5 * meterToPixelX); // 7.5m from left (halfway between edge and center)
+                const halfway22_5m = poolStartX + (22.5 * meterToPixelX); // 22.5m from left (halfway between center and edge)
+                this.collectibles.push(
+                    { x: halfway7_5m, y: line5m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 }, // Left-center
+                    { x: halfway22_5m, y: line5m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 } // Right-center
+                );
+                
+                // Front row (1 ball at 7m line) - Center
+                this.collectibles.push(
+                    { x: centerX, y: line7m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 } // Center
+                );
+                
+                // === BOTTOM FORMATION (4-2 Pattern) ===
+                const bottomLine3m = poolEndY - (3 * meterToPixelY); // 3m from bottom goal (moved 1m away from goal)
+                const bottomLine7m = poolEndY - (7 * meterToPixelY); // 7m from bottom goal (moved 1m away from goal)
+                
+                // Goal posts (assuming 3m goal width = 1.5m from center each way)
+                const goalPostLeft = centerX - (1.5 * meterToPixelX);
+                const goalPostRight = centerX + (1.5 * meterToPixelX);
+                
+                // Front row (4 balls at 3m line) - moved 1m away from goal
+                this.collectibles.push(
+                    { x: edge2m, y: bottomLine3m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 }, // Left edge (2m from side)
+                    { x: goalPostLeft - (2.0 * meterToPixelX), y: bottomLine3m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 }, // 2m outside left goal post (towards left lane)
+                    { x: goalPostRight + (2.0 * meterToPixelX), y: bottomLine3m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 }, // 2m outside right goal post (towards right lane)
+                    { x: edge28m, y: bottomLine3m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 } // Right edge (2m from side)
+                );
+                
+                // Back row (2 balls at 7m line) - Aligned with inner front balls, moved 1m away from goal
+                this.collectibles.push(
+                    { x: goalPostLeft - (2.0 * meterToPixelX), y: bottomLine7m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 }, // Left (aligned with inner front, towards left lane)
+                    { x: goalPostRight + (2.0 * meterToPixelX), y: bottomLine7m, size: 8, color: '#0080FF', collected: false, pulse: Math.random() * Math.PI * 2 } // Right (aligned with inner front, towards right lane)
+                );
+                
+                // Create power pellets - Portrait layout at four corners of 360x540 pool
+                // Positioned according to documentation: (40,60), (320,60), (40,480), (320,480)
+                this.powerPellets = [];
+                this.powerPellets.push(
+                    // Top-left corner - (40, 60)
+                    { x: 40, y: 60, size: 15, color: '#FFD700', collected: false, pulse: Math.random() * Math.PI * 2 },
+                    // Top-right corner - (320, 60)
+                    { x: 320, y: 60, size: 15, color: '#FFD700', collected: false, pulse: Math.random() * Math.PI * 2 },
+                    // Bottom-left corner - (40, 480)
+                    { x: 40, y: 480, size: 15, color: '#FFD700', collected: false, pulse: Math.random() * Math.PI * 2 },
+                    // Bottom-right corner - (320, 480)
+                    { x: 320, y: 480, size: 15, color: '#FFD700', collected: false, pulse: Math.random() * Math.PI * 2 }
+                );
+                
+                // Create enemies spawning from goals
+                this.enemies = [];
+                const totalEnemies = this.enemyCount + Math.floor(this.level / 3);
+                
+                for (let i = 0; i < totalEnemies; i++) {
+                    const goalIndex = i % 2;
+                    const goal = this.spawnGoals[goalIndex];
+                    const offsetX = (Math.random() - 0.5) * 60;
+                    
+                    let spawnY;
+                    if (goalIndex === 0) {
+                        spawnY = Math.max(10, goal.y - 40 - Math.random() * 30);
+                    } else {
+                        spawnY = Math.min(this.canvas.height - 10, goal.y + 40 + Math.random() * 30);
+                    }
+                    
+                    this.enemies.push({
+                        x: goal.x + offsetX,
+                        y: spawnY,
+                        size: 18,
+                        speed: 80 + this.level * 15,
+                        baseSpeed: 80 + this.level * 15,
+                        speedMultiplier: 0.8 + Math.random() * 0.4, // 0.8 to 1.2
+                        color: '#FF4444',
+                        vulnerable: false,
+                        direction: { x: Math.random() - 0.5, y: Math.random() - 0.5 },
+                        type: 'pirate',
+                        spawnGoal: goalIndex,
+                        justSpawned: true,
+                        spawnTimer: 2.0,
+                        // Enhanced AI properties
+                        wanderAngle: Math.random() * Math.PI * 2,
+                        wanderTimer: 0,
+                        directionChangeTimer: 0,
+                        speedChangeTimer: Math.random() * 3000 + 2000, // 2-5 seconds
+                        lastSpeedChange: 0
+                    });
+                }
+                
+                this.updateUI();
+            }  
+          
+            gameLoop() {
+                const currentTime = performance.now();
+                const deltaTime = currentTime - this.lastTime;
+                this.lastTime = currentTime;
+                
+                // Performance monitoring for portrait optimization
+                this.frameCount++;
+                if (currentTime - this.lastFPSUpdate > 1000) {
+                    this.currentFPS = this.frameCount;
+                    this.fpsHistory.push(this.currentFPS);
+                    
+                    // Keep only last 60 seconds of FPS data
+                    if (this.fpsHistory.length > 60) {
+                        this.fpsHistory.shift();
+                    }
+                    
+                    // Update performance metrics
+                    this.updatePerformanceMetrics();
+                    
+                    this.frameCount = 0;
+                    this.lastFPSUpdate = currentTime;
+                    
+                    // Adaptive quality based on performance
+                    this.adjustQualityBasedOnPerformance();
+                }
+                
+                // Frame time limiting for consistent performance
+                const targetFrameTime = 16.67; // 60 FPS
+                if (deltaTime < targetFrameTime) {
+                    // Skip frame if running too fast to maintain consistent timing
+                    if (this.gameState === 'playing' || this.gameState === 'paused') {
+                        requestAnimationFrame(() => this.gameLoop());
+                    }
+                    return;
+                }
+                
+                if (this.gameState === 'playing') {
+                    this.update(Math.min(deltaTime, 33.33)); // Cap delta time to prevent large jumps
+                }
+                
+                this.render();
+                
+                if (this.gameState === 'playing' || this.gameState === 'paused') {
+                    requestAnimationFrame(() => this.gameLoop());
+                }
+            }
+            
+            updatePerformanceMetrics() {
+                if (this.fpsHistory.length > 0) {
+                    this.performanceMetrics.averageFPS = 
+                        this.fpsHistory.reduce((a, b) => a + b) / this.fpsHistory.length;
+                    this.performanceMetrics.minFPS = Math.min(...this.fpsHistory);
+                    
+                    // Count frame drops (FPS below 50)
+                    this.performanceMetrics.frameDrops = 
+                        this.fpsHistory.filter(fps => fps < 50).length;
+                }
+            }
+            
+            adjustQualityBasedOnPerformance() {
+                if (!this.adaptiveQuality) return;
+                
+                const avgFPS = this.performanceMetrics.averageFPS;
+                const minFPS = this.performanceMetrics.minFPS;
+                
+                // Adjust quality based on FPS for portrait mobile optimization
+                if (avgFPS < 45 || minFPS < 35) {
+                    this.performanceLevel = 'low';
+                    // Aggressive optimization for low-end devices
+                    this.maxParticles = 15;
+                    this.shadowQuality = false;
+                    this.glowEffects = false;
+                    
+                    // Reduce enemy AI update frequency
+                    this.aiConfig.updateFrequency = 0.5;
+                    
+                } else if (avgFPS < 55 || minFPS < 45) {
+                    this.performanceLevel = 'medium';
+                    // Moderate quality settings
+                    this.maxParticles = 35;
+                    this.shadowQuality = true;
+                    this.glowEffects = true;
+                    
+                    // Standard AI update frequency
+                    this.aiConfig.updateFrequency = 0.75;
+                    
+                } else {
+                    this.performanceLevel = 'high';
+                    // Full quality settings for high-end devices
+                    this.maxParticles = 60;
+                    this.shadowQuality = true;
+                    this.glowEffects = true;
+                    
+                    // Full AI update frequency
+                    this.aiConfig.updateFrequency = 1.0;
+                }
+                
+                // Limit existing particles to new max
+                if (this.particles.length > this.maxParticles) {
+                    this.particles = this.particles.slice(0, this.maxParticles);
+                }
+                
+                console.log(`📊 Performance: ${avgFPS.toFixed(1)}fps avg, ${minFPS.toFixed(1)}fps min - Quality: ${this.performanceLevel}`);
+            }
+            
+            update(deltaTime) {
+                const dt = deltaTime / 1000;
+                
+                // Update player
+                this.updatePlayer(dt);
+                
+                // Update enemies
+                this.updateEnemies(dt);
+                
+                // Update power pellet timer
+                if (this.powerPelletActive) {
+                    this.powerPelletTimer -= deltaTime;
+                    if (this.powerPelletTimer <= 0) {
+                        this.powerPelletActive = false;
+                        this.enemies.forEach(enemy => {
+                            enemy.vulnerable = false;
+                            enemy.color = '#FF4444';
+                        });
+                    }
+                }
+                
+                // Update collectible pulse
+                this.collectibles.forEach(collectible => {
+                    collectible.pulse += dt * 3;
+                });
+                
+                this.powerPellets.forEach(pellet => {
+                    pellet.pulse += dt * 2;
+                });
+                
+                // Update particles with enhanced vertical spread effects
+                this.particles = this.particles.filter(particle => {
+                    particle.x += particle.vx * dt;
+                    particle.y += particle.vy * dt;
+                    
+                    // Use new life/decay system if available, otherwise use old system
+                    if (particle.life !== undefined) {
+                        particle.life -= particle.decay;
+                        particle.alpha = particle.life;
+                        
+                        // Special effects for different particle types
+                        if (particle.isStreak) {
+                            particle.size *= 0.995; // Slower size decay for streaks
+                        } else if (particle.isPoolSpanning) {
+                            particle.size *= 0.99; // Maintain size longer for pool-spanning effects
+                        } else {
+                            particle.size *= 0.98; // Normal decay
+                        }
+                        
+                        return particle.life > 0 && particle.size > 0.5;
+                    } else {
+                        // Legacy particle system
+                        particle.alpha -= dt * 2;
+                        particle.size *= 0.98;
+                        return particle.alpha > 0 && particle.size > 0.5;
+                    }
+                });
+                
+                // Update screen flash effect
+                if (this.screenFlash && this.screenFlash.active) {
+                    this.screenFlash.alpha -= this.screenFlash.decay;
+                    if (this.screenFlash.alpha <= 0) {
+                        this.screenFlash.active = false;
+                    }
+                }
+                
+                // Update player mouth animation
+                if (this.player.eating) {
+                    this.player.mouthTimer += dt;
+                    this.player.mouthOpen = Math.sin(this.player.mouthTimer * 10) > 0;
+                    
+                    if (this.player.mouthTimer > 0.3) {
+                        this.player.eating = false;
+                        this.player.mouthOpen = false;
+                        this.player.mouthTimer = 0;
+                    }
+                } else {
+                    this.player.mouthOpen = false;
+                }
+                
+                // Check collisions
+                this.checkCollisions();
+                
+                // Check win condition
+                const remainingCollectibles = this.collectibles.filter(c => !c.collected).length;
+                if (remainingCollectibles === 0) {
+                    this.nextLevel();
+                }
+            }
+            
+            updatePlayer(dt) {
+                let dx = 0, dy = 0;
+                const sensitivity = this.touchJoystick.sensitivity;
+                
+                // Keyboard input
+                if (this.keys['ArrowLeft'] || this.keys['KeyA']) dx = -1;
+                if (this.keys['ArrowRight'] || this.keys['KeyD']) dx = 1;
+                if (this.keys['ArrowUp'] || this.keys['KeyW']) dy = -1;
+                if (this.keys['ArrowDown'] || this.keys['KeyS']) dy = 1;
+                
+                // Enhanced touch input with improved responsiveness
+                if (this.touchJoystick && this.touchJoystick.active) {
+                    // Apply sensitivity with distance-based scaling for more precise control
+                    const distance = Math.sqrt(this.touchJoystick.deltaX * this.touchJoystick.deltaX + 
+                                             this.touchJoystick.deltaY * this.touchJoystick.deltaY);
+                    const normalizedDistance = Math.min(distance / this.touchJoystick.maxDistance, 1);
+                    
+                    // Progressive sensitivity - more precise near center, more responsive at edges
+                    const dynamicSensitivity = sensitivity * (0.5 + normalizedDistance * 0.5);
+                    
+                    dx += this.touchJoystick.deltaX * dynamicSensitivity;
+                    dy += this.touchJoystick.deltaY * dynamicSensitivity;
+                }
+                
+                // Normalize diagonal movement while preserving analog precision
+                const magnitude = Math.sqrt(dx * dx + dy * dy);
+                if (magnitude > 1) {
+                    dx /= magnitude;
+                    dy /= magnitude;
+                }
+                
+                // Apply movement smoothing for portrait gameplay
+                const smoothingFactor = 0.85; // Slight smoothing for fluid movement
+                this.player.velocityX = (this.player.velocityX || 0) * smoothingFactor + dx * (1 - smoothingFactor);
+                this.player.velocityY = (this.player.velocityY || 0) * smoothingFactor + dy * (1 - smoothingFactor);
+                
+                // Use smoothed velocity for final movement
+                dx = this.player.velocityX;
+                dy = this.player.velocityY;
+                
+                this.player.x += dx * this.player.speed * dt;
+                this.player.y += dy * this.player.speed * dt;
+                
+                // Keep player in bounds
+                this.player.x = Math.max(this.player.size, Math.min(this.canvas.width - this.player.size, this.player.x));
+                this.player.y = Math.max(this.player.size, Math.min(this.canvas.height - this.player.size, this.player.y));
+            } 
+           
+            updateEnemies(dt) {
+                // Performance optimization: reduce AI update frequency on low-end devices
+                const shouldUpdateAI = this.performanceLevel === 'high' || 
+                    (this.frameCount % Math.ceil(2 / this.aiConfig.updateFrequency)) === 0;
+                
+                this.enemies.forEach((enemy, index) => {
+                    // Handle spawn protection
+                    if (enemy.justSpawned) {
+                        enemy.spawnTimer -= dt;
+                        if (enemy.spawnTimer <= 0) {
+                            enemy.justSpawned = false;
+                        } else {
+                            // During spawn protection, move away from goal
+                            const goal = this.spawnGoals[enemy.spawnGoal];
+                            let exitDirectionX = 0;
+                            let exitDirectionY = 0;
+                            
+                            if (enemy.spawnGoal === 0) {
+                                exitDirectionY = 1;
+                                exitDirectionX = (enemy.x > this.canvas.width / 2) ? 0.3 : -0.3;
+                            } else {
+                                exitDirectionY = -1;
+                                exitDirectionX = (enemy.x > this.canvas.width / 2) ? 0.3 : -0.3;
+                            }
+                            
+                            enemy.x += exitDirectionX * enemy.speed * dt;
+                            enemy.y += exitDirectionY * enemy.speed * dt;
+                            return;
+                        }
+                    }
+                    
+                    // Update AI timers (performance-aware)
+                    if (shouldUpdateAI) {
+                        enemy.wanderTimer += dt;
+                        enemy.directionChangeTimer += dt;
+                        enemy.speedChangeTimer -= dt * 1000;
+                    }
+                    
+                    // Speed variation system
+                    if (enemy.speedChangeTimer <= 0) {
+                        enemy.speedMultiplier = this.aiConfig.speedVariationRange[0] + 
+                            Math.random() * (this.aiConfig.speedVariationRange[1] - this.aiConfig.speedVariationRange[0]);
+                        enemy.speedChangeTimer = Math.random() * 3000 + 2000; // 2-5 seconds
+                    }
+                    
+                    // Enhanced AI behavior with vertical pursuit priority
+                    const dx = this.player.x - enemy.x;
+                    const dy = this.player.y - enemy.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    let targetDirectionX = 0;
+                    let targetDirectionY = 0;
+                    
+                    if (distance > 0) {
+                        if (enemy.vulnerable) {
+                            // Enhanced side-fleeing behavior for vulnerable enemies
+                            this.calculateFleeingBehavior(enemy, dx, dy, distance);
+                            targetDirectionX = enemy.fleeDirectionX || 0;
+                            targetDirectionY = enemy.fleeDirectionY || 0;
+                        } else {
+                            // Normal pursuit behavior
+                            const rawDirectionX = dx / distance;
+                            const rawDirectionY = dy / distance;
+                            
+                            // Boost vertical movement and moderate horizontal movement
+                            targetDirectionX = rawDirectionX * (1 - this.aiConfig.verticalBias + this.aiConfig.horizontalExploration);
+                            targetDirectionY = rawDirectionY * this.aiConfig.verticalPursuitStrength;
+                        }
+                    }
+                    
+                    // Separation from other enemies - optimized for 360px width
+                    let separationX = 0;
+                    let separationY = 0;
+                    this.enemies.forEach((otherEnemy, otherIndex) => {
+                        if (index !== otherIndex) {
+                            const sepDx = enemy.x - otherEnemy.x;
+                            const sepDy = enemy.y - otherEnemy.y;
+                            const sepDistance = Math.sqrt(sepDx * sepDx + sepDy * sepDy);
+                            
+                            if (sepDistance < this.aiConfig.separationRadius && sepDistance > 0) {
+                                const separationForce = (this.aiConfig.separationRadius - sepDistance) / this.aiConfig.separationRadius;
+                                
+                                // Enhanced horizontal separation for narrow width
+                                const horizontalSeparationMultiplier = Math.abs(sepDx) > Math.abs(sepDy) ? 1.5 : 1.0;
+                                
+                                separationX += (sepDx / sepDistance) * separationForce * this.aiConfig.separationStrength * horizontalSeparationMultiplier;
+                                separationY += (sepDy / sepDistance) * separationForce * this.aiConfig.separationStrength;
+                            }
+                        }
+                    });
+                    
+                    // Wandering behavior - biased toward vertical exploration
+                    enemy.wanderAngle += (Math.random() - 0.5) * 0.5 * dt;
+                    
+                    // Apply vertical bias to wandering
+                    let wanderX = Math.cos(enemy.wanderAngle) * this.aiConfig.wanderStrength;
+                    let wanderY = Math.sin(enemy.wanderAngle) * this.aiConfig.wanderStrength;
+                    
+                    // Boost vertical wandering and moderate horizontal wandering
+                    wanderX *= (1 - this.aiConfig.wanderVerticalBias);
+                    wanderY *= this.aiConfig.wanderVerticalBias + 0.5; // Always some vertical component
+                    
+                    // Add vertical pool exploration - encourage movement toward unexplored areas
+                    const poolCenter = this.canvas.height / 2;
+                    const distanceFromCenter = Math.abs(enemy.y - poolCenter);
+                    const maxDistance = this.canvas.height / 2;
+                    
+                    // If too close to center, encourage movement toward edges
+                    if (distanceFromCenter < maxDistance * 0.3) {
+                        wanderY += (enemy.y < poolCenter ? -0.2 : 0.2);
+                    }
+                    
+                    // Random direction changes - favor vertical movement
+                    if (Math.random() < this.aiConfig.directionChangeChance) {
+                        // Reduced horizontal randomness, increased vertical randomness
+                        targetDirectionX += (Math.random() - 0.5) * 0.5;
+                        targetDirectionY += (Math.random() - 0.5) * 1.0;
+                    }
+                    
+                    // Combine all behaviors
+                    targetDirectionX += separationX + wanderX;
+                    targetDirectionY += separationY + wanderY;
+                    
+                    // Smooth direction changes
+                    const smoothing = 0.1;
+                    enemy.direction.x += (targetDirectionX - enemy.direction.x) * smoothing;
+                    enemy.direction.y += (targetDirectionY - enemy.direction.y) * smoothing;
+                    
+                    // Apply movement with speed variation
+                    const finalSpeed = enemy.vulnerable ? 
+                        enemy.baseSpeed * enemy.speedMultiplier * 0.5 : 
+                        enemy.baseSpeed * enemy.speedMultiplier;
+                    
+                    enemy.x += enemy.direction.x * finalSpeed * dt;
+                    enemy.y += enemy.direction.y * finalSpeed * dt;
+                    
+                    // Keep in bounds
+                    enemy.x = Math.max(enemy.size, Math.min(this.canvas.width - enemy.size, enemy.x));
+                    enemy.y = Math.max(enemy.size, Math.min(this.canvas.height - enemy.size, enemy.y));
+                });
+            }
+            
+            calculateFleeingBehavior(enemy, dx, dy, distance) {
+                // Enhanced vertical fleeing behavior for vulnerable enemies (Requirements 4.4, 4.5)
+                const rawFleeX = -(dx / distance); // Basic flee direction (opposite of player)
+                const rawFleeY = -(dy / distance);
+                
+                // Apply vertical fleeing bias - prioritize up/down movement for portrait layout (Requirement 4.5)
+                let fleeDirectionX = rawFleeX * this.aiConfig.fleeingSideBias;
+                let fleeDirectionY = rawFleeY * this.aiConfig.fleeingVerticalBias;
+                
+                // Add evasive maneuvers - create varied movement patterns with vertical bias
+                if (Math.random() < this.aiConfig.fleeingVariationChance) {
+                    // Random evasive maneuver with vertical preference for portrait layout
+                    const evasiveAngle = Math.random() * Math.PI * 2;
+                    fleeDirectionX += Math.cos(evasiveAngle) * this.aiConfig.fleeingEvasiveStrength * 0.5; // Reduced horizontal evasion
+                    fleeDirectionY += Math.sin(evasiveAngle) * this.aiConfig.fleeingEvasiveStrength; // Enhanced vertical evasion
+                }
+                
+                // Strong wall bouncing behavior - override fleeing to bounce back into gameplay
+                const wallBounceDistance = this.aiConfig.wallBounceDistance;
+                const bounceStrength = this.aiConfig.fleeingBounceStrength;
+                
+                // Check proximity to walls and OVERRIDE fleeing direction with strong bouncing
+                let wallBounceActive = false;
+                
+                if (enemy.x < wallBounceDistance) {
+                    // Near left wall - FORCE bounce right toward center
+                    const bounceForce = (wallBounceDistance - enemy.x) / wallBounceDistance;
+                    fleeDirectionX = bounceForce * bounceStrength * 2.0; // Strong rightward force
+                    wallBounceActive = true;
+                } else if (enemy.x > this.canvas.width - wallBounceDistance) {
+                    // Near right wall - FORCE bounce left toward center
+                    const bounceForce = (enemy.x - (this.canvas.width - wallBounceDistance)) / wallBounceDistance;
+                    fleeDirectionX = -bounceForce * bounceStrength * 2.0; // Strong leftward force
+                    wallBounceActive = true;
+                }
+                
+                if (enemy.y < wallBounceDistance) {
+                    // Near top wall - FORCE bounce down toward center
+                    const bounceForce = (wallBounceDistance - enemy.y) / wallBounceDistance;
+                    fleeDirectionY = bounceForce * bounceStrength * 1.5; // Strong downward force
+                    wallBounceActive = true;
+                } else if (enemy.y > this.canvas.height - wallBounceDistance) {
+                    // Near bottom wall - FORCE bounce up toward center
+                    const bounceForce = (enemy.y - (this.canvas.height - wallBounceDistance)) / wallBounceDistance;
+                    fleeDirectionY = -bounceForce * bounceStrength * 1.5; // Strong upward force
+                    wallBounceActive = true;
+                }
+                
+                // If bouncing is active, reduce the original flee direction to prevent edge-sticking
+                if (wallBounceActive) {
+                    fleeDirectionX *= 0.3; // Reduce original flee direction when bouncing
+                    fleeDirectionY *= 0.3;
+                }
+                
+                // Utilize full pool width - encourage movement across the 360px width
+                const poolCenter = this.canvas.width / 2;
+                const distanceFromCenterX = Math.abs(enemy.x - poolCenter);
+                const maxDistanceX = this.canvas.width / 2;
+                
+                // If too close to horizontal center, encourage movement toward sides
+                if (distanceFromCenterX < maxDistanceX * 0.4) {
+                    const sideDirection = enemy.x < poolCenter ? -1 : 1;
+                    fleeDirectionX += sideDirection * 0.3;
+                }
+                
+                // Store calculated flee directions on enemy for use in movement
+                enemy.fleeDirectionX = fleeDirectionX;
+                enemy.fleeDirectionY = fleeDirectionY;
+            }
+            
+            checkCollisions() {
+                // Player vs collectibles
+                this.collectibles.forEach(collectible => {
+                    if (!collectible.collected && this.distance(this.player, collectible) < this.player.size + collectible.size) {
+                        collectible.collected = true;
+                        this.score += 10;
+                        this.createParticles(collectible.x, collectible.y, '#0080FF', 3);
+                        this.player.eating = true;
+                        this.player.mouthTimer = 0;
+                        this.playCollectSound();
+                        this.updateUI();
+                    }
+                });
+                
+                // Player vs power pellets
+                this.powerPellets.forEach(pellet => {
+                    if (!pellet.collected && this.distance(this.player, pellet) < this.player.size + pellet.size) {
+                        pellet.collected = true;
+                        this.score += 50;
+                        this.activatePowerPellet();
+                        
+                        // Enhanced power pellet collection effects (Requirements 4.4, 4.5)
+                        this.createVerticalSpreadEffect(pellet.x, pellet.y);
+                        this.createParticles(pellet.x, pellet.y, '#FFD700', 12); // More particles
+                        
+                        // Add screen flash effect for dramatic power pellet collection
+                        this.createScreenFlash('#FFD700', 0.3);
+                        
+                        this.player.eating = true;
+                        this.player.mouthTimer = 0;
+                        this.playPowerPelletSound();
+                        this.updateUI();
+                    }
+                });
+                
+                // Player vs enemies
+                this.enemies.forEach(enemy => {
+                    if (this.distance(this.player, enemy) < this.player.size + enemy.size) {
+                        if (enemy.vulnerable) {
+                            // Defeat enemy
+                            this.score += 200;
+                            this.createParticles(enemy.x, enemy.y, '#0080FF', 10);
+                            this.player.eating = true;
+                            this.player.mouthTimer = 0;
+                            this.playEnemyDefeatSound();
+                            
+                            // Respawn enemy at goal
+                            const goalIndex = Math.floor(Math.random() * 2);
+                            const goal = this.spawnGoals[goalIndex];
+                            const offsetX = (Math.random() - 0.5) * 60;
+                            
+                            let spawnY;
+                            if (goalIndex === 0) {
+                                spawnY = Math.max(10, goal.y - 40 - Math.random() * 30);
+                            } else {
+                                spawnY = Math.min(this.canvas.height - 10, goal.y + 40 + Math.random() * 30);
+                            }
+                            
+                            enemy.x = goal.x + offsetX;
+                            enemy.y = spawnY;
+                            enemy.spawnGoal = goalIndex;
+                            enemy.vulnerable = false;
+                            enemy.color = '#FF4444';
+                            enemy.justSpawned = true;
+                            enemy.spawnTimer = 2.0;
+                            // Reset AI properties
+                            enemy.speedMultiplier = 0.8 + Math.random() * 0.4;
+                            enemy.wanderAngle = Math.random() * Math.PI * 2;
+                            this.updateUI();
+                        } else {
+                            // Player dies
+                            this.playDeathSound();
+                            this.loseLife();
+                        }
+                    }
+                });
+            }      
+      
+            render() {
+                // Clear canvas with gradient background
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, '#001122');
+                gradient.addColorStop(1, '#002244');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                if (this.gameState === 'playing' || this.gameState === 'paused') {
+                    // Draw vertical waterpolo pool features
+                    this.drawVerticalPoolLayout();
+                    
+                    // Draw water polo goals
+                    this.spawnGoals.forEach(goal => {
+                        this.drawWaterpoloGoal(goal.x, goal.y);
+                    });
+                    
+                    // Draw collectibles as blue circles (small waterpolo balls)
+                    this.collectibles.forEach(collectible => {
+                        if (!collectible.collected) {
+                            const pulseSize = collectible.size + Math.sin(collectible.pulse) * 2;
+                            
+                            // Draw blue collectible with performance-optimized glow
+                            this.ctx.save();
+                            
+                            // Apply glow effects only if performance allows
+                            if (this.glowEffects && this.shadowQuality) {
+                                this.ctx.shadowColor = '#0080FF';
+                                this.ctx.shadowBlur = 8;
+                                this.ctx.shadowOffsetX = 0;
+                                this.ctx.shadowOffsetY = 0;
+                            }
+                            
+                            // Main blue circle
+                            this.drawCircle(collectible.x, collectible.y, pulseSize, '#0080FF');
+                            
+                            // Inner highlight for 3D effect (only if quality allows)
+                            if (this.shadowQuality) {
+                                this.ctx.shadowBlur = 0;
+                            }
+                            this.drawCircle(collectible.x - pulseSize * 0.3, collectible.y - pulseSize * 0.3, pulseSize * 0.4, '#40A0FF');
+                            
+                            this.ctx.restore();
+                        }
+                    });
+                    
+                    // Draw power pellets with waterpolo ball sprites and golden glow
+                    this.powerPellets.forEach(pellet => {
+                        if (!pellet.collected) {
+                            const pulseScale = 1 + Math.sin(pellet.pulse) * 0.3;
+                            const glowIntensity = 0.5 + Math.sin(pellet.pulse * 1.5) * 0.3;
+                            
+                            this.ctx.save();
+                            
+                            if (this.sprites.powerPellet && this.sprites.powerPellet.complete) {
+                                // Performance-optimized golden glow effect
+                                if (this.glowEffects && this.shadowQuality) {
+                                    this.ctx.shadowColor = '#FFD700';
+                                    this.ctx.shadowBlur = 25 * glowIntensity;
+                                    this.ctx.shadowOffsetX = 0;
+                                    this.ctx.shadowOffsetY = 0;
+                                }
+                                
+                                // Draw waterpolo ball sprite
+                                this.drawSprite(this.sprites.powerPellet, pellet.x, pellet.y, 32 * pulseScale, 32 * pulseScale);
+                                
+                                // Add golden tint overlay
+                                this.ctx.globalCompositeOperation = 'overlay';
+                                this.ctx.fillStyle = '#FFD700';
+                                this.ctx.globalAlpha = 0.4;
+                                this.ctx.beginPath();
+                                this.ctx.arc(pellet.x, pellet.y, 16 * pulseScale, 0, 2 * Math.PI);
+                                this.ctx.fill();
+                            } else {
+                                // Performance-optimized fallback golden circle
+                                if (this.glowEffects && this.shadowQuality) {
+                                    this.ctx.shadowColor = '#FFD700';
+                                    this.ctx.shadowBlur = 20 * glowIntensity;
+                                    this.ctx.shadowOffsetX = 0;
+                                    this.ctx.shadowOffsetY = 0;
+                                }
+                                
+                                const pulseSize = pellet.size + Math.sin(pellet.pulse) * 3;
+                                this.drawCircle(pellet.x, pellet.y, pulseSize, '#FFD700');
+                                
+                                // Inner highlight (only if quality allows)
+                                if (this.shadowQuality) {
+                                    this.ctx.shadowBlur = 0;
+                                }
+                                this.drawCircle(pellet.x - pulseSize * 0.3, pellet.y - pulseSize * 0.3, pulseSize * 0.4, '#FFFF80');
+                            }
+                            
+                            this.ctx.restore();
+                        }
+                    });
+                    
+                    // Draw enemies with spawn animation and glow effects
+                    this.enemies.forEach(enemy => {
+                        let alpha = 1.0;
+                        let scale = 1.0;
+                        if (enemy.justSpawned) {
+                            const spawnProgress = 1 - (enemy.spawnTimer / 2.0);
+                            alpha = 0.3 + (spawnProgress * 0.7);
+                            scale = 0.5 + (spawnProgress * 0.5);
+                        }
+                        
+                        this.ctx.save();
+                        this.ctx.globalAlpha = alpha;
+                        
+                        // Always draw pirate ships (canvas sprite)
+                        if (this.sprites.pirateShip) {
+                            if (enemy.vulnerable) {
+                                // Performance-optimized vulnerable enemy glow
+                                if (this.glowEffects && this.shadowQuality) {
+                                    const glowIntensity = 0.5 + Math.sin(Date.now() * 0.01) * 0.3;
+                                    this.ctx.shadowColor = '#00FFFF';
+                                    this.ctx.shadowBlur = 25 * glowIntensity;
+                                    this.ctx.shadowOffsetX = 0;
+                                    this.ctx.shadowOffsetY = 0;
+                                }
+                                
+                                // Draw the pirate ship sprite
+                                this.ctx.drawImage(this.sprites.pirateShip, 
+                                    enemy.x - 20 * scale, enemy.y - 20 * scale, 
+                                    40 * scale, 40 * scale);
+                                
+                                // Add cyan tint for vulnerable state
+                                this.ctx.globalCompositeOperation = 'multiply';
+                                this.ctx.fillStyle = '#4080FF';
+                                this.ctx.fillRect(enemy.x - 20 * scale, enemy.y - 20 * scale, 40 * scale, 40 * scale);
+                                this.ctx.globalCompositeOperation = 'source-over';
+                            } else {
+                                // Draw normal pirate ship
+                                this.ctx.drawImage(this.sprites.pirateShip, 
+                                    enemy.x - 20 * scale, enemy.y - 20 * scale, 
+                                    40 * scale, 40 * scale);
+                            }
+                        } else {
+                            // Fallback to circles if sprite fails
+                            if (enemy.vulnerable) {
+                                const glowIntensity = 0.5 + Math.sin(Date.now() * 0.01) * 0.3;
+                                this.ctx.shadowColor = '#00FFFF';
+                                this.ctx.shadowBlur = 15 * glowIntensity;
+                                this.ctx.shadowOffsetX = 0;
+                                this.ctx.shadowOffsetY = 0;
+                                this.drawCircle(enemy.x, enemy.y, enemy.size * scale, '#0080FF');
+                            } else {
+                                this.drawCircle(enemy.x, enemy.y, enemy.size * scale, '#FF4444');
+                            }
+                        }
+                        
+                        this.ctx.restore();
+                    });
+                    
+                    // Draw particles with performance optimization
+                    if (this.particles.length > 0) {
+                        this.ctx.save();
+                        
+                        // Batch particle rendering for better performance
+                        const particlesToRender = this.performanceLevel === 'low' ? 
+                            this.particles.slice(0, 20) : this.particles;
+                        
+                        particlesToRender.forEach(particle => {
+                            this.ctx.globalAlpha = particle.alpha;
+                            
+                            // Enhanced rendering for special particle types
+                            if (particle.isStreak) {
+                                // Render streaks with glow effect
+                                this.ctx.save();
+                                this.ctx.shadowColor = particle.color;
+                                this.ctx.shadowBlur = 10;
+                                this.drawCircle(particle.x, particle.y, particle.size, particle.color);
+                                this.ctx.restore();
+                            } else if (particle.isPoolSpanning) {
+                                // Render pool-spanning particles with intense glow
+                                this.ctx.save();
+                                this.ctx.shadowColor = particle.color;
+                                this.ctx.shadowBlur = 15;
+                                this.drawCircle(particle.x, particle.y, particle.size, particle.color);
+                                this.ctx.restore();
+                            } else {
+                                // Normal particle rendering
+                                this.drawCircle(particle.x, particle.y, particle.size, particle.color);
+                            }
+                        });
+                        
+                        this.ctx.restore();
+                    }
+                    
+                    // Draw player (Patu) with sprite and mouth animation
+                    if (this.sprites.patuLogo && this.sprites.patuLogo.complete) {
+                        const scale = this.player.mouthOpen ? 1.1 : 1.0;
+                        const size = this.player.spriteSize * scale;
+                        this.drawSprite(this.sprites.patuLogo, this.player.x, this.player.y, size, size);
+                        
+                        if (this.player.eating && this.player.mouthOpen) {
+                            this.ctx.save();
+                            this.ctx.globalAlpha = 0.7;
+                            this.ctx.fillStyle = '#FFD700';
+                            this.ctx.beginPath();
+                            this.ctx.arc(this.player.x, this.player.y, this.player.spriteSize * 0.6, 0, 2 * Math.PI);
+                            this.ctx.fill();
+                            this.ctx.restore();
+                        }
+                    } else {
+                        if (this.player.mouthOpen) {
+                            this.ctx.fillStyle = this.player.color;
+                            this.ctx.beginPath();
+                            this.ctx.arc(this.player.x, this.player.y, this.player.size, 0.2 * Math.PI, 1.8 * Math.PI);
+                            this.ctx.lineTo(this.player.x, this.player.y);
+                            this.ctx.fill();
+                        } else {
+                            this.drawCircle(this.player.x, this.player.y, this.player.size, this.player.color);
+                        }
+                    }
+                    
+                    // Draw power pellet timer
+                    if (this.powerPelletActive) {
+                        const timeLeft = Math.ceil(this.powerPelletTimer / 1000);
+                        this.ctx.fillStyle = '#FFFF00';
+                        this.ctx.font = 'bold 20px Arial';
+                        this.ctx.fillText(`Power Time: ${timeLeft}`, 10, 30);
+                    }
+                    
+                    // Draw pause message
+                    if (this.gameState === 'paused') {
+                        // Portrait-optimized pause overlay
+                        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                        
+                        const pulseAlpha = 0.8 + Math.sin(Date.now() * 0.003) * 0.2;
+                        this.ctx.fillStyle = `rgba(255, 215, 0, ${pulseAlpha})`;
+                        
+                        // Responsive font sizing for portrait
+                        const pauseFontSize = Math.min(this.canvas.width * 0.12, 42);
+                        const instructionFontSize = Math.min(this.canvas.width * 0.06, 20);
+                        
+                        this.ctx.font = `bold ${pauseFontSize}px Arial`;
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText('⏸️ PAUSED', this.canvas.width / 2, this.canvas.height / 2 - 20);
+                        
+                        this.ctx.fillStyle = '#FFFFFF';
+                        this.ctx.font = `bold ${instructionFontSize}px Arial`;
+                        
+                        // Different instructions for mobile vs desktop
+                        const isMobile = window.innerWidth <= 768;
+                        const instruction = isMobile ? 'Tap ⏸️ to resume' : 'Press P to resume';
+                        this.ctx.fillText(instruction, this.canvas.width / 2, this.canvas.height / 2 + 30);
+                        
+                        // Additional mobile instruction
+                        if (isMobile) {
+                            this.ctx.font = `${instructionFontSize * 0.8}px Arial`;
+                            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                            this.ctx.fillText('Tap 📱 for menu', this.canvas.width / 2, this.canvas.height / 2 + 55);
+                        }
+                        
+                        this.ctx.textAlign = 'left';
+                    }
+                    
+                    // Draw screen flash effect for power pellet collection
+                    if (this.screenFlash && this.screenFlash.active) {
+                        this.ctx.save();
+                        this.ctx.globalAlpha = this.screenFlash.alpha;
+                        this.ctx.fillStyle = this.screenFlash.color;
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                        this.ctx.restore();
+                    }
+                }
+            }      
+      
+            drawWaterpoloGoal(x, y) {
+                const ctx = this.ctx;
+                ctx.save();
+                
+                // Keep original goal size - much better proportions
+                const goalWidth = 80;
+                const goalHeight = 40;
+                const postWidth = 4;
+                
+                // Goal posts (white)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(x - goalWidth/2, y - goalHeight/2, postWidth, goalHeight);
+                ctx.fillRect(x + goalWidth/2 - postWidth, y - goalHeight/2, postWidth, goalHeight);
+                ctx.fillRect(x - goalWidth/2, y - goalHeight/2, goalWidth, postWidth);
+                
+                // Goal net pattern
+                ctx.strokeStyle = '#CCCCCC';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                for (let i = 1; i < 4; i++) {
+                    const netY = y - goalHeight/2 + postWidth + (goalHeight - postWidth) * i / 4;
+                    ctx.moveTo(x - goalWidth/2 + postWidth, netY);
+                    ctx.lineTo(x + goalWidth/2 - postWidth, netY);
+                }
+                
+                ctx.stroke();
+                
+                // Goal shadow/depth effect
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.fillRect(x - goalWidth/2 + postWidth, y - goalHeight/2 + postWidth, 
+                           goalWidth - 2*postWidth, goalHeight - postWidth);
+                
+                ctx.restore();
+            }
+            
+            drawVerticalPoolLayout() {
+                const ctx = this.ctx;
+                ctx.save();
+                
+                // Draw vertical water effects flowing down the pool
+                const time = Date.now() * 0.001;
+                ctx.fillStyle = 'rgba(0, 150, 255, 0.1)';
+                
+                // Vertical water flow lines
+                for (let i = 0; i < 8; i++) {
+                    const x = (i + 1) * (this.canvas.width / 9);
+                    const waveOffset = Math.sin(time * 2 + i * 0.5) * 10;
+                    
+                    // Draw flowing water lines from top to bottom
+                    for (let y = 0; y < this.canvas.height; y += 20) {
+                        const flowY = y + (time * 30) % 20;
+                        const flowX = x + waveOffset;
+                        ctx.fillRect(flowX, flowY, 2, 8);
+                    }
+                }
+                
+                // Draw authentic waterpolo lane markers
+                this.drawWaterpoloLaneMarkers();
+                
+                // Draw pool boundaries
+                this.drawPoolBoundaries();
+                
+                ctx.restore();
+            }
+            
+            drawWaterpoloLaneMarkers() {
+                const ctx = this.ctx;
+                ctx.save();
+                
+                // Authentic waterpolo lane markers with vertical lane ropes
+                const topGoalY = 30;
+                const bottomGoalY = this.canvas.height - 30; // 510 for 540px height
+                const meterScale = 21; // pixels per meter (20m pool = 420px)
+                const centerY = (topGoalY + bottomGoalY) / 2;
+                
+                // Draw vertical lane ropes with authentic color coding
+                this.drawVerticalLaneRopes(topGoalY, bottomGoalY, centerY, meterScale);
+                
+                // Draw horizontal distance markers (2m and 6m only)
+                this.drawHorizontalDistanceMarkers(topGoalY, bottomGoalY, meterScale);
+                
+                // Draw center line (half-way line)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([15, 5]);
+                ctx.beginPath();
+                ctx.moveTo(20, centerY);
+                ctx.lineTo(this.canvas.width - 20, centerY);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+            
+            drawVerticalLaneRopes(topGoalY, bottomGoalY, centerY, meterScale) {
+                const ctx = this.ctx;
+                
+                // Lane ropes only on the sides of the pool (authentic waterpolo)
+                const leftLaneRopeX = 25;  // Left side lane rope
+                const rightLaneRopeX = this.canvas.width - 25; // Right side lane rope
+                
+                // Draw left and right lane ropes
+                this.drawSingleLaneRope(leftLaneRopeX, topGoalY, bottomGoalY, centerY, meterScale);
+                this.drawSingleLaneRope(rightLaneRopeX, topGoalY, bottomGoalY, centerY, meterScale);
+            }
+            
+            drawSingleLaneRope(x, topGoalY, bottomGoalY, centerY, meterScale) {
+                const ctx = this.ctx;
+                ctx.lineWidth = 3;
+                
+                // Draw lane rope segments with authentic color coding
+                const segmentLength = 8; // Small segments for color transitions
+                
+                for (let y = topGoalY; y < bottomGoalY; y += segmentLength) {
+                    const segmentEndY = Math.min(y + segmentLength, bottomGoalY);
+                    const segmentMidY = (y + segmentEndY) / 2;
+                    
+                    // Get color for this segment based on distance from goals
+                    const color = this.getLaneRopeColor(segmentMidY, topGoalY, bottomGoalY, centerY, meterScale);
+                    
+                    ctx.strokeStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, segmentEndY);
+                    ctx.stroke();
+                }
+                
+                // Add small markers on lane ropes
+                this.drawLaneRopeMarkers(ctx, x, topGoalY, bottomGoalY, centerY, meterScale);
+            }
+            
+            drawLaneRopeMarkers(ctx, x, topGoalY, bottomGoalY, centerY, meterScale) {
+                // Calculate marker positions
+                const top5m = topGoalY + (5 * meterScale);
+                const bottom5m = bottomGoalY - (5 * meterScale);
+                const halfwayY = centerY;
+                
+                // Draw 5m red markers (small circles on lane rope)
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
+                ctx.beginPath();
+                ctx.arc(x, top5m, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(x, bottom5m, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw halfway white marker (small circle on lane rope)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.beginPath();
+                ctx.arc(x, halfwayY, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            getLaneRopeColor(y, topGoalY, bottomGoalY, centerY, meterScale) {
+                // Calculate distance from top and bottom goals
+                const distanceFromTop = y - topGoalY;
+                const distanceFromBottom = bottomGoalY - y;
+                
+                // Convert to meters
+                const metersFromTop = distanceFromTop / meterScale;
+                const metersFromBottom = distanceFromBottom / meterScale;
+                
+                // Authentic waterpolo lane rope color coding
+                // Top half of pool
+                if (y <= centerY) {
+                    if (metersFromTop <= 2) {
+                        return 'rgba(255, 0, 0, 0.7)'; // RED (0-2m from top goal)
+                    } else if (metersFromTop <= 6) {
+                        return 'rgba(255, 255, 0, 0.7)'; // YELLOW (2-6m from top goal)
+                    } else {
+                        return 'rgba(0, 255, 0, 0.7)'; // GREEN (6m to halfway from top)
+                    }
+                }
+                // Bottom half of pool
+                else {
+                    if (metersFromBottom <= 2) {
+                        return 'rgba(255, 0, 0, 0.7)'; // RED (0-2m from bottom goal)
+                    } else if (metersFromBottom <= 6) {
+                        return 'rgba(255, 255, 0, 0.7)'; // YELLOW (2-6m from bottom goal)
+                    } else {
+                        return 'rgba(0, 255, 0, 0.7)'; // GREEN (6m to halfway from bottom)
+                    }
+                }
+            }
+            
+            drawHorizontalDistanceMarkers(topGoalY, bottomGoalY, meterScale) {
+                const ctx = this.ctx;
+                
+                // 2m markers (white dashed)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([10, 10]);
+                
+                const top2m = topGoalY + (2 * meterScale);
+                const bottom2m = bottomGoalY - (2 * meterScale);
+                
+                // Draw 2m lines
+                [top2m, bottom2m].forEach(y => {
+                    ctx.beginPath();
+                    ctx.moveTo(20, y);
+                    ctx.lineTo(this.canvas.width - 20, y);
+                    ctx.stroke();
+                });
+                
+                // 6m markers (white dashed)
+                const top6m = topGoalY + (6 * meterScale);
+                const bottom6m = bottomGoalY - (6 * meterScale);
+                
+                // Draw 6m lines
+                [top6m, bottom6m].forEach(y => {
+                    ctx.beginPath();
+                    ctx.moveTo(20, y);
+                    ctx.lineTo(this.canvas.width - 20, y);
+                    ctx.stroke();
+                });
+                
+                // Note: 5m markers are now small markers on lane ropes only (no horizontal lines)
+            }
+            
+            drawPoolBoundaries() {
+                const ctx = this.ctx;
+                ctx.save();
+                
+                // Pool edge markers
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 4;
+                
+                // Side boundaries - adjusted for goals closer to ends
+                ctx.beginPath();
+                ctx.moveTo(10, 20);
+                ctx.lineTo(10, this.canvas.height - 20);
+                ctx.moveTo(this.canvas.width - 10, 20);
+                ctx.lineTo(this.canvas.width - 10, this.canvas.height - 20);
+                ctx.stroke();
+                
+                // Corner markers
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                const cornerSize = 8;
+                
+                // Top corners
+                ctx.fillRect(10, 20, cornerSize, cornerSize);
+                ctx.fillRect(this.canvas.width - 18, 20, cornerSize, cornerSize);
+                
+                // Bottom corners  
+                ctx.fillRect(10, this.canvas.height - 28, cornerSize, cornerSize);
+                ctx.fillRect(this.canvas.width - 18, this.canvas.height - 28, cornerSize, cornerSize);
+                
+                ctx.restore();
+            }
+            
+            drawSprite(sprite, x, y, width, height) {
+                if (sprite && sprite.complete) {
+                    this.ctx.drawImage(sprite, x - width/2, y - height/2, width, height);
+                }
+            }
+            
+            drawCircle(x, y, radius, color) {
+                this.ctx.fillStyle = color;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, radius, 0, 2 * Math.PI);
+                this.ctx.fill();
+            }
+            
+            createParticles(x, y, color, count) {
+                // Performance optimization: limit particle count based on current performance
+                const adjustedCount = Math.min(count, Math.max(1, Math.floor(count * (this.maxParticles / 60))));
+                
+                // Remove old particles if we're at the limit
+                if (this.particles.length + adjustedCount > this.maxParticles) {
+                    this.particles.splice(0, this.particles.length + adjustedCount - this.maxParticles);
+                }
+                
+                for (let i = 0; i < adjustedCount; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 200,
+                        vy: (Math.random() - 0.5) * 200,
+                        size: Math.random() * 4 + 2,
+                        color: color,
+                        alpha: 1
+                    });
+                }
+            }
+            
+            createVerticalSpreadEffect(x, y) {
+                // Enhanced vertical spread effect for portrait layout (Requirement 4.4)
+                const baseParticleCount = 15; // Increased for more dramatic effect
+                const baseStreakCount = 8; // Increased vertical streaks
+                
+                // Adjust particle counts based on performance
+                const particleCount = Math.floor(baseParticleCount * (this.maxParticles / 60));
+                const streakCount = Math.floor(baseStreakCount * (this.maxParticles / 60));
+                
+                // Remove old particles if we're at the limit
+                const totalNewParticles = particleCount + streakCount;
+                if (this.particles.length + totalNewParticles > this.maxParticles) {
+                    this.particles.splice(0, this.particles.length + totalNewParticles - this.maxParticles);
+                }
+                
+                // Create main particles with enhanced vertical spread
+                for (let i = 0; i < particleCount; i++) {
+                    this.particles.push({
+                        x: x,
+                        y: y,
+                        // Emphasize vertical spread for portrait orientation (Requirement 4.4)
+                        vx: (Math.random() - 0.5) * 80, // Reduced horizontal spread
+                        vy: (Math.random() - 0.5) * 400, // Increased vertical spread for full pool coverage
+                        size: Math.random() * 8 + 4, // Slightly larger particles
+                        color: '#FFD700',
+                        alpha: 1,
+                        life: 1.0, // Add life property for better fade-out
+                        decay: 0.015 + Math.random() * 0.01 // Variable decay rate
+                    });
+                }
+                
+                // Add enhanced vertical streaks that span the pool height
+                for (let i = 0; i < streakCount; i++) {
+                    const isUpward = i < streakCount / 2;
+                    this.particles.push({
+                        x: x + (Math.random() - 0.5) * 60, // Slightly wider horizontal spread
+                        y: y,
+                        vx: (Math.random() - 0.5) * 40, // Reduced horizontal velocity
+                        vy: (isUpward ? -1 : 1) * (200 + Math.random() * 150), // Enhanced vertical velocity
+                        size: Math.random() * 4 + 3, // Larger streaks
+                        color: '#FFFF99', // Lighter golden color for streaks
+                        alpha: 0.9,
+                        life: 1.0,
+                        decay: 0.012, // Slower decay for longer visibility
+                        isStreak: true // Mark as streak for special rendering
+                    });
+                }
+                
+                // Add pool-spanning effect particles that travel the full height
+                for (let i = 0; i < 4; i++) {
+                    this.particles.push({
+                        x: x + (Math.random() - 0.5) * 20,
+                        y: y,
+                        vx: (Math.random() - 0.5) * 20,
+                        vy: (i < 2 ? -1 : 1) * (300 + Math.random() * 100), // Fast vertical movement
+                        size: Math.random() * 2 + 1,
+                        color: '#FFFFFF', // Bright white for dramatic effect
+                        alpha: 1.0,
+                        life: 1.0,
+                        decay: 0.008, // Very slow decay for maximum visibility
+                        isPoolSpanning: true // Special effect particles
+                    });
+                }
+            }
+            
+            createScreenFlash(color, intensity) {
+                // Create a brief screen flash effect for power pellet collection
+                this.screenFlash = {
+                    active: true,
+                    color: color,
+                    alpha: intensity,
+                    decay: 0.05,
+                    startTime: performance.now()
+                };
+            }
+            
+            activatePowerPellet() {
+                this.powerPelletActive = true;
+                this.powerPelletTimer = 10000; // 10 seconds
+                this.enemies.forEach(enemy => {
+                    enemy.vulnerable = true;
+                    enemy.color = '#0080FF';
+                });
+                
+                // Add visual feedback that power pellet mode is active
+                console.log('🔥 Power Pellet activated! Enemies are vulnerable for 10 seconds');
+            }
+            
+            loseLife() {
+                this.lives--;
+                this.updateUI();
+                
+                if (this.lives <= 0) {
+                    this.gameOver();
+                } else {
+                    // Reset player position
+                    this.player.x = 180; // Center of 360px width
+                    this.player.y = 270; // Center of 540px height
+                }
+            }
+            
+            nextLevel() {
+                this.level++;
+                this.collectibleCount = Math.min(30, 20 + this.level * 2);
+                this.createParticles(this.player.x, this.player.y, '#FFD700', 20);
+                this.initLevel();
+            }
+            
+            gameOver() {
+                this.gameState = 'gameOver';
+                document.getElementById('finalScore').textContent = this.score;
+                document.getElementById('gameOverMenu').classList.remove('hidden');
+            }
+            
+            distance(a, b) {
+                const dx = a.x - b.x;
+                const dy = a.y - b.y;
+                return Math.sqrt(dx * dx + dy * dy);
+            }
+            
+            updateUI() {
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('lives').textContent = this.lives;
+                document.getElementById('level').textContent = this.level;
+            }
+            
+            reset() {
+                console.log('Reset called');
+                this.score = 0;
+                this.lives = 3;
+                this.level = 1;
+                this.powerPelletActive = false;
+                this.powerPelletTimer = 0;
+                this.particles = [];
+                this.player.x = 180; // Center of 360px width
+                this.player.y = 270; // Center of 540px height
+                this.collectibleCount = 25;
+                this.initLevel();
+                this.updateUI();
+            }
+        }
+
+        let game;
+
+        function startGame() {
+            console.log('🚀 startGame() function called');
+            
+            try {
+                if (!game) {
+                    console.log('Creating new game instance...');
+                    game = new PatuPiratesGame();
+                }
+                
+                console.log('Calling game.reset()...');
+                game.reset();
+                
+                console.log('Calling game.start()...');
+                game.start();
+                
+                console.log('✅ startGame() completed successfully');
+                
+            } catch (error) {
+                console.error('❌ Error in startGame():', error);
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            console.log('🎮 Page loaded, initializing...');
+            
+            try {
+                game = new PatuPiratesGame();
+                console.log('✅ Game initialized successfully');
+                
+                // Show menu
+                document.getElementById('menu').classList.remove('hidden');
+                console.log('✅ Menu shown, ready to play!');
+                
+            } catch (error) {
+                console.error('❌ Failed to initialize game:', error);
+            }
+        });
+    </script>
+</body>
+</html>
